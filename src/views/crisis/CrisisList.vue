@@ -189,8 +189,10 @@
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="team">干预团队</el-dropdown-item>
+                  <el-dropdown-item command="progress">进展跟踪</el-dropdown-item>
+                  <el-dropdown-item command="talk">谈话记录</el-dropdown-item>
                   <el-dropdown-item command="history">变更历史</el-dropdown-item>
-                  <el-dropdown-item command="close" v-if="row.status !== 'closed'">结案</el-dropdown-item>
+                  <el-dropdown-item command="close" v-if="row.status !== 'closed'">结案管理</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -650,11 +652,16 @@ const addIntervention = (row) => {
 }
 
 const handleMoreAction = (command, row) => {
+  const reportId = row.reportId || row.id
   switch (command) {
     case 'team':
-      currentCrisis.value = row
-      activeTab.value = 'team'
-      detailDrawer.value = true
+      router.push({ path: '/crisis/team', query: { reportId } })
+      break
+    case 'progress':
+      router.push({ path: '/crisis/progress', query: { reportId } })
+      break
+    case 'talk':
+      router.push({ path: '/crisis/talk-record', query: { reportId } })
       break
     case 'history':
       currentCrisis.value = row
@@ -662,23 +669,9 @@ const handleMoreAction = (command, row) => {
       detailDrawer.value = true
       break
     case 'close':
-      handleClose(row)
+      router.push({ path: '/crisis/close', query: { reportId } })
       break
   }
-}
-
-const handleClose = async (row) => {
-  try {
-    await ElMessageBox.prompt('请输入结案原因', '结案确认', {
-      confirmButtonText: '确认结案',
-      cancelButtonText: '取消',
-      inputPattern: /\S+/,
-      inputErrorMessage: '请输入结案原因'
-    }).then(({ value }) => {
-      ElMessage.success('结案成功')
-      loadData()
-    })
-  } catch {}
 }
 
 onMounted(() => {

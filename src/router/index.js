@@ -88,6 +88,30 @@ const routes = [
   meta: { needAuth: true, roles: ['counselor','center','admin','tutor','college','leader'] }
 },
 
+// 危机干预团队管理
+  {
+    path: '/crisis/team',
+    name: 'CrisisTeam',
+    component: () => import('../views/crisis/CrisisTeam.vue'),
+    meta: { needAuth: true, roles: ['counselor','center','admin','tutor','college','leader'] }
+  },
+
+// 危机进展跟踪
+  {
+    path: '/crisis/progress',
+    name: 'CrisisProgress',
+    component: () => import('../views/crisis/CrisisProgress.vue'),
+    meta: { needAuth: true, roles: ['counselor','center','admin','tutor','college','leader'] }
+  },
+
+// 谈话记录管理
+  {
+    path: '/crisis/talk-record',
+    name: 'CrisisTalkRecord',
+    component: () => import('../views/crisis/CrisisTalkRecord.vue'),
+    meta: { needAuth: true, roles: ['counselor','center','admin','tutor','college','leader'] }
+  },
+
   {
     path: '/counselor/schedule',
     component: () => import('../views/counselor/ScheduleCenter.vue'),
