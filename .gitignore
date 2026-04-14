@@ -1,0 +1,48 @@
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+.env
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Temporary build/test files
+tmp-*.json
+tmp_*.js
+tmp_*.cjs
+
+# API diff and report files
+api_diff_report.json
+api_diff_report.md
+*-reports-*.html
+
+# Temporary images and docs
+image-*.jpg
+doc_endpoints.csv
+openapi_required_endpoints.txt
+
+# Optional: Archive old OpenAPI specs (uncomment if you want to ignore them)
+# Default module.openapi.json
+# all_discovered_interfaces_openapi.json
+# all_interfaces_openapi.json
+# complete_openapi.json
+# apifox_import.json

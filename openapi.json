@@ -1,0 +1,3020 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "心理健康平台API",
+    "description": "心理健康平台API文档，包含活动、预约、测评、用户等功能",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "开发环境"
+    }
+  ],
+  "paths": {
+  "/api/parent/children/list": {
+    "get": {
+      "tags": ["家长端"],
+      "summary": "子女列表",
+      "description": "获取家长的子女列表",
+      "responses": {
+        "200": {
+          "description": "成功获取子女列表",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "integer",
+                    "example": 200
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "success"
+                  },
+                  "data": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ChildVO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/parent/children/detail": {
+    "get": {
+      "tags": ["家长端"],
+      "summary": "子女详情",
+      "description": "获取指定子女的详细信息",
+      "parameters": [
+        {
+          "name": "studentId",
+          "in": "query",
+          "description": "学生ID",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "成功获取子女详情",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "integer",
+                    "example": 200
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "success"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/ChildVO"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/parent/children/bind": {
+    "post": {
+      "tags": ["家长端"],
+      "summary": "绑定子女",
+      "description": "家长绑定子女关系",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ParentBindChildDTO"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "description": "绑定成功",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "integer",
+                    "example": 200
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "绑定成功"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/parent/children/unbind": {
+    "post": {
+      "tags": ["家长端"],
+      "summary": "解绑子女",
+      "description": "解除家长与子女的绑定关系",
+      "parameters": [
+        {
+          "name": "childId",
+          "in": "query",
+          "description": "子女ID",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "解绑成功",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "integer",
+                    "example": 200
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "解绑成功"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/parent/counselor": {
+    "get": {
+      "tags": ["家长端"],
+      "summary": "获取辅导员信息",
+      "description": "获取子女对应的辅导员信息",
+      "parameters": [
+        {
+          "name": "studentId",
+          "in": "query",
+          "description": "学生ID",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "成功获取辅导员信息",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "integer",
+                    "example": 200
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "success"
+                  },
+                  "data": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/CounselorDetailVO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/parent/children/assessments": {
+    "get": {
+      "tags": ["家长端"],
+      "summary": "查询子女测评记录",
+      "description": "分页查询子女的测评记录",
+      "parameters": [
+        {
+          "name": "studentId",
+          "in": "query",
+          "description": "学生ID",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "page",
+          "in": "query",
+          "description": "页码",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "default": 1
+          }
+        },
+        {
+          "name": "pageSize",
+          "in": "query",
+          "description": "每页大小",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "default": 10
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "成功获取测评记录",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "integer",
+                    "example": 200
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "success"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/PageResult"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/parent/children/appointments": {
+    "get": {
+      "tags": ["家长端"],
+      "summary": "查询子女预约记录",
+      "description": "分页查询子女的预约记录",
+      "parameters": [
+        {
+          "name": "studentId",
+          "in": "query",
+          "description": "学生ID",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "page",
+          "in": "query",
+          "description": "页码",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "default": 1
+          }
+        },
+        {
+          "name": "pageSize",
+          "in": "query",
+          "description": "每页大小",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "default": 10
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "成功获取预约记录",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "integer",
+                    "example": 200
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "success"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/PageResult"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/parent/children/activities": {
+    "get": {
+      "tags": ["家长端"],
+      "summary": "查询子女活动记录",
+      "description": "分页查询子女的活动参与记录",
+      "parameters": [
+        {
+          "name": "studentId",
+          "in": "query",
+          "description": "学生ID",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "page",
+          "in": "query",
+          "description": "页码",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "default": 1
+          }
+        },
+        {
+          "name": "pageSize",
+          "in": "query",
+          "description": "每页大小",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "default": 10
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "成功获取活动记录",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "integer",
+                    "example": 200
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "success"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/PageResult"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/activity/list": {
+      "get": {
+        "tags": ["活动"],
+        "summary": "活动列表",
+        "description": "获取活动列表",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页大小",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取活动列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RPageResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/activity/detail": {
+      "get": {
+        "tags": ["活动"],
+        "summary": "活动详情",
+        "description": "获取活动详情",
+        "parameters": [
+          {
+            "name": "activityId",
+            "in": "query",
+            "description": "活动ID",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "description": "活动ID（兼容）",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取活动详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RActivityDetailVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/activity/join": {
+      "post": {
+        "tags": ["活动"],
+        "summary": "报名活动",
+        "description": "报名参加活动",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "activityId": {
+                    "type": "string",
+                    "description": "活动ID"
+                  }
+                },
+                "required": ["activityId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "报名成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/activity/signup": {
+      "post": {
+        "tags": ["活动"],
+        "summary": "报名活动（别名）",
+        "description": "报名参加活动（前端别名）",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "activityId": {
+                    "type": "string",
+                    "description": "活动ID"
+                  }
+                },
+                "required": ["activityId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "报名成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/activity/cancel": {
+      "post": {
+        "tags": ["活动"],
+        "summary": "取消报名",
+        "description": "取消活动报名",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "activityId": {
+                    "type": "string",
+                    "description": "活动ID"
+                  }
+                },
+                "required": ["activityId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "取消成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/activity/checkin": {
+      "post": {
+        "tags": ["活动"],
+        "summary": "活动签到",
+        "description": "活动签到",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "activityId": {
+                    "type": "string",
+                    "description": "活动ID"
+                  }
+                },
+                "required": ["activityId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "签到成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/activity/my": {
+      "get": {
+        "tags": ["活动"],
+        "summary": "我的活动",
+        "description": "获取我的活动列表",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页大小",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取我的活动列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RPageResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/activity/my-list": {
+      "get": {
+        "tags": ["活动"],
+        "summary": "我的活动（别名）",
+        "description": "获取我的活动列表（前端别名）",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页大小",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取我的活动列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RPageResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/send-sms": {
+      "post": {
+        "tags": ["认证"],
+        "summary": "发送注册短信验证码",
+        "description": "发送注册短信验证码",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthSendSmsDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "发送成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": ["认证"],
+        "summary": "用户注册",
+        "description": "用户注册",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthRegisterDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "注册成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/common/getVerificationCode": {
+      "get": {
+        "tags": ["通用"],
+        "summary": "获取验证码",
+        "description": "获取图片验证码",
+        "responses": {
+          "200": {
+            "description": "验证码图片",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/common/login": {
+      "post": {
+        "tags": ["通用"],
+        "summary": "用户登录",
+        "description": "用户登录",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "query",
+            "description": "用户名",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "password",
+            "in": "query",
+            "description": "密码",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "verificationCode",
+            "in": "query",
+            "description": "验证码",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "headers": {
+          "key": {
+            "description": "验证码密钥",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "登录成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/common/health": {
+      "get": {
+        "tags": ["通用"],
+        "summary": "健康检查",
+        "description": "检查服务器状态是否健康",
+        "responses": {
+          "200": {
+            "description": "服务器正常",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/common/upload": {
+      "post": {
+        "tags": ["通用"],
+        "summary": "通用文件上传",
+        "description": "通用文件上传接口",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "上传的文件"
+                  },
+                  "folder": {
+                    "type": "string",
+                    "description": "存储文件夹",
+                    "default": "common"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "上传成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RMapStringString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/common/upload/image": {
+      "post": {
+        "tags": ["通用"],
+        "summary": "图片上传",
+        "description": "图片上传接口",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "上传的图片文件"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "上传成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RMapStringString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appointment/submit": {
+      "post": {
+        "tags": ["预约"],
+        "summary": "创建预约",
+        "description": "提交预约申请",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppointmentDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RMapBooleanString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appointment/my-list": {
+      "get": {
+        "tags": ["预约"],
+        "summary": "我的预约列表",
+        "description": "查询我的预约列表",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "description": "用户ID",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页大小",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RPageResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appointment/detail": {
+      "get": {
+        "tags": ["预约"],
+        "summary": "预约详情",
+        "description": "查询预约详情",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "description": "预约ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RAppointmentDetailVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appointment/list": {
+      "get": {
+        "tags": ["预约"],
+        "summary": "预约列表（管理端）",
+        "description": "查询预约列表（管理端）",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页大小",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RPageResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appointment/cancel": {
+      "post": {
+        "tags": ["预约"],
+        "summary": "取消预约",
+        "description": "取消预约",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppointmentStatusUpdateDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "取消成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appointment/confirm": {
+      "post": {
+        "tags": ["预约"],
+        "summary": "确认预约",
+        "description": "确认预约",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppointmentStatusUpdateDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "确认成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appointment/reject": {
+      "post": {
+        "tags": ["预约"],
+        "summary": "拒绝预约",
+        "description": "拒绝预约",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppointmentStatusUpdateDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "已拒绝",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appointment/mark-no-show": {
+      "post": {
+        "tags": ["预约"],
+        "summary": "标记爽约",
+        "description": "标记爽约",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppointmentStatusUpdateDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "已标记爽约",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assessment/list": {
+      "get": {
+        "tags": ["测评"],
+        "summary": "测评列表",
+        "description": "获取测评列表",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页大小",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取测评列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RPageResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assessment/detail": {
+      "get": {
+        "tags": ["测评"],
+        "summary": "测评详情",
+        "description": "获取测评详情（说明页）",
+        "parameters": [
+          {
+            "name": "planId",
+            "in": "query",
+            "description": "测评计划ID",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "description": "测评计划ID（兼容）",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取测评详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RAssessmentDetailVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assessment/start": {
+      "post": {
+        "tags": ["测评"],
+        "summary": "开始测评",
+        "description": "开始测评",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentStartDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "开始成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RAssessmentStartVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assessment/submit": {
+      "post": {
+        "tags": ["测评"],
+        "summary": "提交测评",
+        "description": "提交测评答案",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentSubmitDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "提交成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RMapStringObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assessment/result": {
+      "get": {
+        "tags": ["测评"],
+        "summary": "测评结果",
+        "description": "获取测评结果",
+        "parameters": [
+          {
+            "name": "recordId",
+            "in": "query",
+            "description": "测评记录ID",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "description": "测评记录ID（兼容）",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取测评结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RAssessmentResultVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assessment/my": {
+      "get": {
+        "tags": ["测评"],
+        "summary": "我的测评",
+        "description": "获取我的测评记录",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页大小",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取我的测评",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RPageResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assessment/my-list": {
+      "get": {
+        "tags": ["测评"],
+        "summary": "我的测评（别名）",
+        "description": "获取我的测评记录（前端别名）",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页大小",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取我的测评",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RPageResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assessment/plan/create": {
+      "post": {
+        "tags": ["测评"],
+        "summary": "保存测评方案",
+        "description": "创建或更新测评方案",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentPlanCreateDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "保存成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RMapStringObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assessment/export": {
+      "get": {
+        "tags": ["测评"],
+        "summary": "测评导出",
+        "description": "导出测评结果",
+        "parameters": [
+          {
+            "name": "planId",
+            "in": "query",
+            "description": "测评方案ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "导出成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RAssessmentResultVO"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["测评"],
+        "summary": "测评导出（POST方式）",
+        "description": "导出测评结果（POST方式）",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "planId": {
+                    "type": "string",
+                    "description": "测评方案ID"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "导出成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RAssessmentResultVO"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/info": {
+      "get": {
+        "tags": ["用户"],
+        "summary": "获取当前用户信息",
+        "description": "获取当前登录用户的信息",
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RUserVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/update": {
+      "put": {
+        "tags": ["用户"],
+        "summary": "更新用户信息",
+        "description": "更新当前用户信息",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserVO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RUserVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/change-password": {
+      "post": {
+        "tags": ["用户"],
+        "summary": "修改密码",
+        "description": "修改当前用户密码",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "修改成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/reset-password": {
+      "post": {
+        "tags": ["用户"],
+        "summary": "重置密码",
+        "description": "重置用户密码",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "重置成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/send-code": {
+      "post": {
+        "tags": ["用户"],
+        "summary": "发送验证码",
+        "description": "发送验证码（用于找回密码）",
+        "parameters": [
+          {
+            "name": "phone",
+            "in": "query",
+            "description": "手机号",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "发送成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/consultant/list": {
+      "get": {
+        "tags": ["咨询师"],
+        "summary": "咨询师列表",
+        "description": "获取咨询师列表",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页大小",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RPageResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/consultant/detail": {
+      "get": {
+        "tags": ["咨询师"],
+        "summary": "咨询师详情",
+        "description": "获取咨询师详情",
+        "parameters": [
+          {
+            "name": "counselorId",
+            "in": "query",
+            "description": "咨询师ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RCounselorDetailVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/crisis/report": {
+      "post": {
+        "tags": ["危机"],
+        "summary": "危机上报",
+        "description": "上报危机事件",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrisisReportCreateDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "上报成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/crisis/list": {
+      "get": {
+        "tags": ["危机"],
+        "summary": "危机列表",
+        "description": "获取危机事件列表",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页大小",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RPageResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/crisis/update-level": {
+      "post": {
+        "tags": ["危机"],
+        "summary": "更新危机等级",
+        "description": "更新危机事件等级",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrisistLevelDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RCrisistLevelVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/crisis/detail": {
+      "get": {
+        "tags": ["危机"],
+        "summary": "危机详情",
+        "description": "获取危机事件详情",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "description": "危机事件ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RCrisisReportVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leave/list": {
+      "get": {
+        "tags": ["请假"],
+        "summary": "请假列表",
+        "description": "获取请假列表",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "每页大小",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RPageResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leave/apply": {
+      "post": {
+        "tags": ["请假"],
+        "summary": "申请请假",
+        "description": "提交请假申请",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeaveApplyDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "申请成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leave/cancel": {
+      "post": {
+        "tags": ["请假"],
+        "summary": "取消请假",
+        "description": "取消请假申请",
+        "parameters": [
+          {
+            "name": "leaveId",
+            "in": "query",
+            "description": "请假ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reason",
+            "in": "query",
+            "description": "取消原因",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "取消成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leave/approve": {
+      "post": {
+        "tags": ["请假"],
+        "summary": "审批通过",
+        "description": "审批通过请假申请",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeaveApprovalDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "审批成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leave/reject": {
+      "post": {
+        "tags": ["请假"],
+        "summary": "审批拒绝",
+        "description": "拒绝请假申请",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeaveApprovalDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "审批已拒绝",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bind/status/{studentId}": {
+      "get": {
+        "tags": ["绑定"],
+        "summary": "绑定状态查询",
+        "description": "查询学生绑定状态",
+        "parameters": [
+          {
+            "name": "studentId",
+            "in": "path",
+            "description": "学生ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RInteger"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bind/confirm/{studentId}": {
+      "post": {
+        "tags": ["绑定"],
+        "summary": "确认绑定",
+        "description": "确认与学生的绑定关系",
+        "parameters": [
+          {
+            "name": "studentId",
+            "in": "path",
+            "description": "学生ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "确认成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bind/reject/{studentId}": {
+      "post": {
+        "tags": ["绑定"],
+        "summary": "拒绝绑定",
+        "description": "拒绝与学生的绑定请求",
+        "parameters": [
+          {
+            "name": "studentId",
+            "in": "path",
+            "description": "学生ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "拒绝成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "/api/cms/cms-s": {
+      "post": {
+        "tags": ["CMS内容管理"],
+        "summary": "分页获取内容列表",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PageQueryDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RPageResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/message/list": {
+      "get": {
+        "tags": ["消息中心"],
+        "summary": "消息列表",
+        "responses": {
+          "200": {
+            "description": "查询成功"
+          }
+        }
+      }
+    },
+    "/api/schedule/list": {
+      "get": {
+        "tags": ["排班管理"],
+        "summary": "排班列表",
+        "responses": {
+          "200": {
+            "description": "查询成功"
+          }
+        }
+      }
+    },
+    "/api/case/list": {
+      "get": {
+        "tags": ["个案管理"],
+        "summary": "个案列表",
+        "responses": {
+          "200": {
+            "description": "查询成功"
+          }
+        }
+      }
+    },
+    "/api/record/list": {
+      "get": {
+        "tags": ["咨询记录"],
+        "summary": "咨询记录列表",
+        "responses": {
+          "200": {
+            "description": "查询成功"
+          }
+        }
+      }
+    },
+    "/api/self-help/list": {
+      "get": {
+        "tags": ["心理自助"],
+        "summary": "自助文章列表",
+        "responses": {
+          "200": {
+            "description": "查询成功"
+          }
+        }
+      }
+    },
+    "/api/notice/list": {
+      "get": {
+        "tags": ["通知公告"],
+        "summary": "通知列表",
+        "responses": {
+          "200": {
+            "description": "查询成功"
+          }
+        }
+      }
+    },
+    "/api/notice/detail": {
+      "get": {
+        "tags": ["通知公告"],
+        "summary": "通知详情",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功"
+          }
+        }
+      }
+    },
+    "/api/consulate/list": {
+      "post": {
+        "tags": ["咨询师管理"],
+        "summary": "获取咨询师列表",
+        "responses": {
+          "200": {
+            "description": "查询成功"
+          }
+        }
+      }
+    },
+    "/api/config/visit-form": {
+      "get": {
+        "tags": ["配置管理"],
+        "summary": "获取来访登记表配置",
+        "responses": {
+          "200": {
+            "description": "查询成功"
+          }
+        }
+      }
+    },
+    "/api/home/data": {
+      "get": {
+        "tags": ["首页"],
+        "summary": "获取首页数据",
+        "responses": {
+          "200": {
+            "description": "查询成功"
+          }
+        }
+      }
+    },
+    "/api/psychology/article": {
+      "get": {
+        "tags": ["心理文章"],
+        "summary": "心理文章列表或详情",
+        "responses": {
+          "200": {
+            "description": "查询成功"
+          }
+        }
+      }
+    },
+    "/api/pre-assessment/submit": {
+      "post": {
+        "tags": ["前测量表"],
+        "summary": "提交前测量表",
+        "responses": {
+          "200": {
+            "description": "提交成功"
+          }
+        }
+      }
+    },
+    "/api/teacher/message/inbox": {
+      "get": {
+        "tags": ["教师端"],
+        "summary": "收件箱",
+        "responses": {
+          "200": {
+            "description": "查询成功"
+          }
+        }
+      }
+    },
+    "/api/admin/stats/overview": {
+      "get": {
+        "tags": ["管理端-统计"],
+        "summary": "统计概览",
+        "responses": {
+          "200": {
+            "description": "查询成功"
+          }
+        }
+      }
+    },
+    "/api/admin/student/list": {
+      "get": {
+        "tags": ["管理端-学生管理"],
+        "summary": "学生列表",
+        "responses": {
+          "200": {
+            "description": "查询成功"
+          }
+        }
+      }
+    },
+    "/api/admin/user/list": {
+      "get": {
+        "tags": ["管理端-用户管理"],
+        "summary": "用户列表",
+        "responses": {
+          "200": {
+            "description": "查询成功"
+          }
+        }
+      }
+    },
+    "/api/report/list": {
+      "get": {
+        "tags": ["报表"],
+        "summary": "报表列表",
+        "responses": {
+          "200": {
+            "description": "查询成功"
+          }
+        }
+      }
+    },
+    "/api/center/approval/consultation/list": {
+      "get": {
+        "tags": ["中心审批"],
+        "summary": "长程咨询申请列表",
+        "responses": {
+          "200": {
+            "description": "查询成功"
+          }
+        }
+      }
+    },
+    "/api/center/content-review/pending": {
+      "get": {
+        "tags": ["内容审核"],
+        "summary": "待审核列表",
+        "responses": {
+          "200": {
+            "description": "查询成功"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "R": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "响应码",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "description": "响应消息",
+            "example": "success"
+          },
+          "data": {
+            "description": "响应数据"
+          }
+        }
+      },
+      "RString": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/R"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "string",
+                "example": "操作成功"
+              }
+            }
+          }
+        ]
+      },
+      "RInteger": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/R"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "integer",
+                "example": 1
+              }
+            }
+          }
+        ]
+      },
+      "RObject": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/R"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "description": "任意对象"
+              }
+            }
+          }
+        ]
+      },
+      "RPageResult": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/R"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/PageResult"
+              }
+            }
+          }
+        ]
+      },
+      "PageResult": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "总数量"
+          },
+          "records": {
+            "type": "array",
+            "description": "数据列表",
+            "items": {
+              "type": "object"
+            }
+          },
+          "currentPage": {
+            "type": "integer",
+            "description": "当前页"
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "每页大小"
+          }
+        }
+      },
+      "RUserVO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/R"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/UserVO"
+              }
+            }
+          }
+        ]
+      },
+      "UserVO": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "用户ID"
+          },
+          "username": {
+            "type": "string",
+            "description": "用户名"
+          },
+          "realName": {
+            "type": "string",
+            "description": "真实姓名"
+          },
+          "accountStatus": {
+            "type": "string",
+            "description": "账户状态"
+          }
+        }
+      },
+      "RActivityDetailVO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/R"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/ActivityDetailVO"
+              }
+            }
+          }
+        ]
+      },
+      "ActivityDetailVO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "活动ID"
+          },
+          "title": {
+            "type": "string",
+            "description": "活动标题"
+          },
+          "description": {
+            "type": "string",
+            "description": "活动描述"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "开始时间"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "结束时间"
+          }
+        }
+      },
+      "RAppointmentDetailVO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/R"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/AppointmentDetailVO"
+              }
+            }
+          }
+        ]
+      },
+      "AppointmentDetailVO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "预约ID"
+          },
+          "userId": {
+            "type": "string",
+            "description": "用户ID"
+          },
+          "counselorId": {
+            "type": "string",
+            "description": "咨询师ID"
+          },
+          "appointmentTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "预约时间"
+          },
+          "status": {
+            "type": "string",
+            "description": "预约状态"
+          }
+        }
+      },
+      "RCounselorDetailVO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/R"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/CounselorDetailVO"
+              }
+            }
+          }
+        ]
+      },
+      "CounselorDetailVO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "咨询师ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "咨询师姓名"
+          },
+          "qualification": {
+            "type": "string",
+            "description": "资质证书"
+          },
+          "introduction": {
+            "type": "string",
+            "description": "个人介绍"
+          }
+        }
+      },
+      "RAssessmentDetailVO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/R"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/AssessmentDetailVO"
+              }
+            }
+          }
+        ]
+      },
+      "RAssessmentStartVO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/R"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/AssessmentStartVO"
+              }
+            }
+          }
+        ]
+      },
+      "RAssessmentResultVO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/R"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/AssessmentResultVO"
+              }
+            }
+          }
+        ]
+      },
+      "RMapStringObject": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/R"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        ]
+      },
+      "RMapBooleanString": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/R"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "RMapStringString": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/R"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "RCrisistLevelVO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/R"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/CrisistLevelVO"
+              }
+            }
+          }
+        ]
+      },
+      "RCrisisReportVO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/R"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/CrisisReportVO"
+              }
+            }
+          }
+        ]
+      },
+      "AppointmentDTO": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "用户ID"
+          },
+          "counselorId": {
+            "type": "string",
+            "description": "咨询师ID"
+          },
+          "appointmentTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "预约时间"
+          }
+        }
+      },
+      "AppointmentStatusUpdateDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "预约ID"
+          },
+          "status": {
+            "type": "string",
+            "description": "新状态"
+          }
+        }
+      },
+      "AssessmentStartDTO": {
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string",
+            "description": "测评方案ID"
+          }
+        }
+      },
+      "AssessmentSubmitDTO": {
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string",
+            "description": "测评方案ID"
+          },
+          "answers": {
+            "type": "object",
+            "description": "答案集合",
+            "additionalProperties": {}
+          }
+        }
+      },
+      "AssessmentPlanCreateDTO": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "测评方案名称"
+          },
+          "description": {
+            "type": "string",
+            "description": "测评方案描述"
+          }
+        }
+      },
+      "ChangePasswordDTO": {
+        "type": "object",
+        "properties": {
+          "oldPassword": {
+            "type": "string",
+            "description": "旧密码"
+          },
+          "newPassword": {
+            "type": "string",
+            "description": "新密码"
+          }
+        }
+      },
+      "ResetPasswordDTO": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "用户名"
+          },
+          "newPassword": {
+            "type": "string",
+            "description": "新密码"
+          }
+        }
+      },
+      "CrisisReportCreateDTO": {
+        "type": "object",
+        "properties": {
+          "studentId": {
+            "type": "string",
+            "description": "学生ID"
+          },
+          "content": {
+            "type": "string",
+            "description": "危机内容"
+          },
+          "level": {
+            "type": "string",
+            "description": "危机等级"
+          }
+        }
+      },
+      "CrisistLevelDTO": {
+        "type": "object",
+        "properties": {
+          "reportId": {
+            "type": "string",
+            "description": "报告ID"
+          },
+          "crisisLevel": {
+            "type": "string",
+            "description": "危机等级"
+          }
+        }
+      },
+      "CrisistLevelVO": {
+        "type": "object",
+        "properties": {
+          "reportId": {
+            "type": "string",
+            "description": "报告ID"
+          },
+          "oldLevel": {
+            "type": "string",
+            "description": "原等级"
+          },
+          "newLevel": {
+            "type": "string",
+            "description": "新等级"
+          }
+        }
+      },
+      "CrisisReportVO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "报告ID"
+          },
+          "studentId": {
+            "type": "string",
+            "description": "学生ID"
+          },
+          "content": {
+            "type": "string",
+            "description": "危机内容"
+          },
+          "level": {
+            "type": "string",
+            "description": "危机等级"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "创建时间"
+          }
+        }
+      },
+      "LeaveApplyDTO": {
+        "type": "object",
+        "properties": {
+          "studentId": {
+            "type": "string",
+            "description": "学生ID"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "开始日期"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "结束日期"
+          },
+          "reason": {
+            "type": "string",
+            "description": "请假原因"
+          }
+        }
+      },
+      "LeaveApprovalDTO": {
+        "type": "object",
+        "properties": {
+          "leaveId": {
+            "type": "string",
+            "description": "请假ID"
+          },
+          "approverId": {
+            "type": "string",
+            "description": "审批人ID"
+          },
+          "status": {
+            "type": "string",
+            "description": "审批状态"
+          }
+        }
+      }
+    }
+  }
+}
