@@ -288,7 +288,20 @@ const formatTime = (time) => {
 const loadConsentInfo = async () => {
   const appointmentId = route.query.appointmentId
   if (!appointmentId) {
-    ElMessage.warning('缺少预约ID参数')
+    ElMessageBox.confirm(
+        '未检测到预约ID，您可以手动输入或返回上一页',
+        '提示',
+        {
+          confirmButtonText: '手动输入',
+          cancelButtonText: '返回',
+          type: 'warning'
+        }
+    ).then(() => {
+      // 用户选择手动输入，启用表单
+      consentFormRef.value?.clearValidate(['appointmentId'])
+    }).catch(() => {
+      router.back()
+    })
     return
   }
 

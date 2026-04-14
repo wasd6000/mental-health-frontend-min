@@ -252,7 +252,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, ArrowLeft } from '@element-plus/icons-vue'
 import {
@@ -265,6 +265,7 @@ import {
 } from '../../api/crisisInterventionApi'
 
 const route = useRoute()
+const router = useRouter()
 const loading = ref(false)
 const submitting = ref(false)
 const progressList = ref([])
@@ -328,7 +329,19 @@ const getStatusTagType = (status) => {
 const loadProgressList = async () => {
   const reportId = route.query.reportId
   if (!reportId) {
-    ElMessage.warning('缺少危机报告ID参数')
+    ElMessageBox.confirm(
+        '未检测到危机报告ID，您可以手动输入或返回上一页',
+        '提示',
+        {
+          confirmButtonText: '手动输入',
+          cancelButtonText: '返回',
+          type: 'warning'
+        }
+    ).then(() => {
+      // 用户选择手动输入，允许继续操作
+    }).catch(() => {
+      router.back()
+    })
     return
   }
 

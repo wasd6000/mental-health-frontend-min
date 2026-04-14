@@ -130,7 +130,7 @@
             <el-button type="primary" link size="small" @click="editTalkRecord(row)">
               编辑
             </el-button>
-            <el-button type="danger" link size="small" @click="deleteTalkRecord(row)">
+            <el-button type="danger" link size="small" @click="handleDeleteTalkRecord(row)">
               删除
             </el-button>
           </template>
@@ -279,7 +279,7 @@ import {
   getTalkRecordsByStudent,
   createTalkRecord,
   updateTalkRecord,
-  deleteTalkRecord,
+  deleteTalkRecord as deleteTalkRecordApi,
   TALK_TYPE_MAP
 } from '../../api/crisisInterventionApi'
 
@@ -459,7 +459,7 @@ const handleSubmitTalk = async () => {
   }
 }
 
-const deleteTalkRecord = async (row) => {
+const handleDeleteTalkRecord = async (row) => {
   try {
     await ElMessageBox.confirm('确定要删除该谈话记录吗？', '提示', {
       confirmButtonText: '确定',
@@ -468,7 +468,7 @@ const deleteTalkRecord = async (row) => {
     })
 
     submitting.value = true
-    const res = await deleteTalkRecord(row.talkRecordId)
+    const res = await deleteTalkRecordApi(row.talkRecordId)
     if (res.code === 200) {
       ElMessage.success('删除成功')
       loadTalkRecords()

@@ -191,6 +191,8 @@
                   <el-dropdown-item command="team">干预团队</el-dropdown-item>
                   <el-dropdown-item command="progress">进展跟踪</el-dropdown-item>
                   <el-dropdown-item command="talk">谈话记录</el-dropdown-item>
+                  <el-dropdown-item command="consent">知情同意书</el-dropdown-item>
+                  <el-dropdown-item command="visit">来访登记</el-dropdown-item>
                   <el-dropdown-item command="history">变更历史</el-dropdown-item>
                   <el-dropdown-item command="close" v-if="row.status !== 'closed'">结案管理</el-dropdown-item>
                 </el-dropdown-menu>
@@ -662,6 +664,25 @@ const handleMoreAction = (command, row) => {
       break
     case 'talk':
       router.push({ path: '/crisis/talk-record', query: { reportId } })
+      break
+    case 'consent':
+      router.push({
+        path: '/crisis/consent',
+        query: {
+          appointmentId: row.appointmentId,
+          studentId: row.studentId,
+          counselorId: row.counselorId
+        }
+      })
+      break
+    case 'visit':
+      router.push({
+        path: '/crisis/visit-register',
+        query: {
+          appointmentId: row.appointmentId,
+          studentId: row.studentId
+        }
+      })
       break
     case 'history':
       currentCrisis.value = row

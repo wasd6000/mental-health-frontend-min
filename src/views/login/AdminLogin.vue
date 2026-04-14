@@ -229,7 +229,6 @@ const login = async () => {
     } catch (_) {
       loadCaptcha()
     }
-// ... existing code ...
 
 
     res = await adminLogin(form.value)
