@@ -112,6 +112,42 @@ const routes = [
     meta: { needAuth: true, roles: ['counselor','center','admin','tutor','college','leader'] }
   },
 
+// 知情同意书
+  {
+    path: '/crisis/consent',
+    name: 'CrisisConsent',
+    component: () => import('../views/crisis/CrisisConsent.vue'),
+    meta: { needAuth: true, roles: ['counselor','center','admin','tutor','college','leader','student'] }
+  },
+
+// 来访登记
+  {
+    path: '/crisis/visit-register',
+    name: 'CrisisVisitRegister',
+    component: () => import('../views/crisis/CrisisVisitRegister.vue'),
+    meta: { needAuth: true, roles: ['counselor','center','admin','tutor','college','leader','student'] }
+  },
+
+// 咨询师请假管理
+  {
+    path: '/counselor/leave/apply',
+    name: 'CounselorLeaveApply',
+    component: () => import('../views/counselor/CounselorLeaveApply.vue'),
+    meta: { needAuth: true, roles: ['counselor'] }
+  },
+  {
+    path: '/counselor/leave/list',
+    name: 'CounselorLeaveList',
+    component: () => import('../views/counselor/CounselorLeaveList.vue'),
+    meta: { needAuth: true, roles: ['counselor'] }
+  },
+  {
+    path: '/admin/leave-approval',
+    name: 'CounselorLeaveApproval',
+    component: () => import('../views/admin/CounselorLeaveApproval.vue'),
+    meta: { needAuth: true, roles: ['center', 'admin'] }
+  },
+
   {
     path: '/counselor/schedule',
     component: () => import('../views/counselor/ScheduleCenter.vue'),
