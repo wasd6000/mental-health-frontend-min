@@ -47,3 +47,43 @@ export function createInterviewTask(data) {
 export function getInterviewRecords(params = {}) {
   return request.get('/api/tutor/interviews/records', { params })
 }
+
+/**
+ * 获取活动列表（辅导员端）
+ * GET /api/tutor/activities
+ */
+export function getTutorActivities(params = {}) {
+  return request.get('/api/tutor/activities', { params })
+}
+
+/**
+ * 创建活动
+ * POST /api/tutor/activities
+ */
+export function createTutorActivity(data) {
+  return request.post('/api/tutor/activities', data)
+}
+
+/**
+ * 更新活动
+ * PUT /api/tutor/activities/:id
+ */
+export function updateTutorActivity(id, data) {
+  return request.put(`/api/tutor/activities/${id}`, data)
+}
+
+/**
+ * 删除活动
+ * DELETE /api/tutor/activities/:id
+ */
+export function deleteTutorActivity(id) {
+  return request.delete(`/api/tutor/activities/${id}`)
+}
+
+/**
+ * 取消活动
+ * POST /api/tutor/activities/:id/cancel
+ */
+export function cancelTutorActivity(id) {
+  return request.post(`/api/tutor/activities/${id}/cancel`)
+}

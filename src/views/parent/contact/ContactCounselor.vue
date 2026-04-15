@@ -91,153 +91,47 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { getChildrenList, getParentCounselor, sendParentMessage, getParentMessages } from '../../../api/parent.js'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { ArrowLeft, Phone, Message } from '@element-plus/icons-vue'
+import { sendSiteMessage } from '@/api/message.js'
 
-const selectedChild = ref('1')
-const loading = ref(false)
-const children = ref([])
-const counselors = ref([])
-const messages = ref([])
-const message = ref({
-  subject: '',
-  content: '',
-  urgency: ''
-})
+const router = useRouter()
 
-onMounted(async () => {
-  await loadChildren()
-  await loadCounselor()
-  await loadMessages()
-})
+// ... existing code ...
 
-watch(selectedChild, async () => {
-  await loadCounselor()
-  await loadMessages()
-})
+async function sendMessage() {
+  if (!messageForm.value.content) {
+    ElMessage.warning('请输入消息内容')
+    return
+  }
 
-const loadChildren = async () => {
   try {
-    loading.value = true
-    const res = await getChildrenList()
-    children.value = res.data || []
-    if (children.value.length > 0) {
-      selectedChild.value = String(children.value[0].id)
+    const target = messageTarget.value
+    const data = {
+      receiverId: target?.id || target?.workNo,
+      receiverType: 'counselor', // 或 'tutor'，根据实际目标类型
+      title: messageForm.value.subject || '学生留言',
+      content: messageForm.value.content,
+      messageType: 4, // system类型，根据实际情况调整
     }
-  } catch (error) {
-    console.error('加载子女列表失败', error)
-    children.value = [
-      { id: '1', name: '张三', studentId: '2024001' },
-      { id: '2', name: '李四', studentId: '2024002' }
-    ]
-    selectedChild.value = '1'
-  } finally {
-    loading.value = false
-  }
-}
 
-const loadCounselor = async () => {
-  try {
-    loading.value = true
-    const child = children.value.find(c => String(c.id) === String(selectedChild.value))
-    if (child) {
-      const res = await getParentCounselor(child.studentId)
-      counselors.value = res.data ? [res.data] : []
+    const res = await sendSiteMessage(data)
+    if (res?.code === 200) {
+      ElMessage.success('消息已发送')
+      messageDialogVisible.value = false
+    } else {
+      ElMessage.error(res?.msg || '发送失败')
     }
-  } catch (error) {
-    console.error('加载辅导员信息失败', error)
-    counselors.value = [{
-      id: '1',
-      childId: selectedChild.value,
-      name: '王老师',
-      avatar: '',
-      title: '心理辅导员',
-      phone: '028-88888888',
-      email: 'counselor@sasu.edu.cn',
-      office: '行政楼305室',
-      workingHours: '周一至周五 8:30-17:30'
-    }]
-  } finally {
-    loading.value = false
+  } catch (e) {
+    console.error('发送消息失败:', e)
+    ElMessage.error(e?.response?.data?.msg || e?.message || '发送失败')
   }
 }
 
-const loadMessages = async () => {
-  try {
-    loading.value = true
-    const child = children.value.find(c => String(c.id) === String(selectedChild.value))
-    if (child) {
-      const res = await getParentMessages({
-        studentId: child.studentId,
-        fromRole: 'parent'
-      })
-      messages.value = res.data || []
-    }
-  } catch (error) {
-    console.error('加载留言记录失败', error)
-  } finally {
-    loading.value = false
-  }
-}
-
-const currentCounselor = computed(() => {
-  const found = counselors.value.find(counselor => counselor.childId === selectedChild.value) || counselors.value[0]
-  return found || {
-    name: '暂无辅导员信息',
-    avatar: '',
-    title: '',
-    phone: '--',
-    email: '--',
-    office: '--',
-    workingHours: '--'
-  }
-})
-
-const currentMessages = computed(() => {
-  return messages.value.filter(msg => msg.childId === selectedChild.value)
-})
-
-const switchChild = () => {
-  // 切换子女逻辑
-  console.log('切换到子女：', selectedChild.value)
-}
-
-const getUrgencyText = (urgency) => {
-  const urgencyMap = {
-    low: '一般',
-    medium: '中等',
-    high: '紧急'
-  }
-  return urgencyMap[urgency] || urgency
-}
-
-const sendMessage = async () => {
-  try {
-    const child = children.value.find(c => c.id === selectedChild.value)
-    const counselor = counselors.value[0]
-    if (child && counselor) {
-      await sendParentMessage({
-        counselorId: counselor.id,
-        content: message.value.content,
-        subject: message.value.subject,
-        fromRole: 'parent',
-        studentId: child.studentId
-      })
-      
-      await loadMessages()
-      
-      message.value = {
-        subject: '',
-        content: '',
-        urgency: ''
-      }
-      
-      alert('留言发送成功')
-    }
-  } catch (error) {
-    console.error('发送留言失败', error)
-    alert('发送留言失败，请重试')
-  }
+function goAppointment(counselor) {
+  router.push('/appointment/select')
 }
 </script>
 

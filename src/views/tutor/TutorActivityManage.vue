@@ -91,13 +91,16 @@
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted } from 'vue'
+<script setup>import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  getTutorActivities,
+  deleteTutorActivity,
+  cancelTutorActivity
+} from '../../api/tutorApi'
 
 const router = useRouter()
-
 const loading = ref(false)
 const list = ref([])
 const total = ref(0)
@@ -109,19 +112,21 @@ const statusFilter = ref('')
 async function loadList() {
   loading.value = true
   try {
-    // TODO: 调用后端 API
-    // const res = await getActivityList({
-    //   page: currentPage.value,
-    //   pageSize: pageSize.value,
-    //   title: searchTitle.value,
-    //   status: statusFilter.value
-    // })
+    const res = await getTutorActivities({
+      page: currentPage.value,
+      pageSize: pageSize.value,
+      title: searchTitle.value || undefined,
+      status: statusFilter.value || undefined,
+    })
 
-    // 模拟数据
-    list.value = []
-    total.value = 0
-
-    ElMessage.success('加载成功')
+    if (res?.code === 200 && res.data) {
+      list.value = res.data.list || res.data.records || []
+      total.value = res.data.total || 0
+    } else {
+      list.value = []
+      total.value = 0
+      ElMessage.warning('获取数据失败')
+    }
   } catch (e) {
     console.error('加载活动列表失败:', e)
     ElMessage.error('加载活动列表失败')
@@ -138,18 +143,15 @@ function onSizeChange() {
 }
 
 function handleCreate() {
-  // TODO: 跳转到创建活动页面
-  ElMessage.info('创建活动功能待实现')
+  router.push('/admin/activity-create')
 }
 
 function handleView(row) {
-  // TODO: 查看详情
-  ElMessage.info('查看活动详情功能待实现')
+  router.push(`/student/activity/${row.activityId}`)
 }
 
 function handleEdit(row) {
-  // TODO: 跳转到编辑页面
-  ElMessage.info('编辑活动功能待实现')
+  router.push(`/admin/activity-edit/${row.activityId}`)
 }
 
 async function handleCancel(row) {
@@ -160,15 +162,17 @@ async function handleCancel(row) {
       type: 'warning'
     })
 
-    // TODO: 调用取消 API
-    // await cancelActivity(row.activityId)
-
-    ElMessage.success('活动已取消')
-    loadList()
+    const res = await cancelTutorActivity(row.activityId)
+    if (res?.code === 200) {
+      ElMessage.success('活动已取消')
+      await loadList()
+    } else {
+      ElMessage.error(res?.msg || '取消失败')
+    }
   } catch (e) {
     if (e !== 'cancel') {
       console.error('取消活动失败:', e)
-      ElMessage.error('取消活动失败')
+      ElMessage.error(e?.response?.data?.msg || e?.message || '取消失败')
     }
   }
 }
@@ -181,15 +185,17 @@ async function handleDelete(row) {
       type: 'error'
     })
 
-    // TODO: 调用删除 API
-    // await deleteActivity(row.activityId)
-
-    ElMessage.success('活动已删除')
-    loadList()
+    const res = await deleteTutorActivity(row.activityId)
+    if (res?.code === 200) {
+      ElMessage.success('活动已删除')
+      await loadList()
+    } else {
+      ElMessage.error(res?.msg || '删除失败')
+    }
   } catch (e) {
     if (e !== 'cancel') {
       console.error('删除活动失败:', e)
-      ElMessage.error('删除活动失败')
+      ElMessage.error(e?.response?.data?.msg || e?.message || '删除失败')
     }
   }
 }
