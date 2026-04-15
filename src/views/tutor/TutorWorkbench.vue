@@ -120,9 +120,12 @@ import {
 } from '@element-plus/icons-vue'
 import { getStatsOverview } from '../../api/statsApi'
 import { getCenterApprovalList, getArchiveStudents } from '../../api/centerArchive'
+import { getTutorRecentActivities } from '../../api/workbench'
+import { isSuccess } from '../../utils/responseHelper'
 
 const router = useRouter()
 const loading = ref(false)
+
 
 // 使用 markRaw 避免图标组件被做成响应式
 const statsData = ref([
@@ -230,7 +233,7 @@ const loadData = async () => {
   try {
     // 1. 加载统计数据
     const statsRes = await getStatsOverview()
-    if (statsRes.code === 200 && statsRes.data) {
+    if (isSuccess(statsRes) && statsRes.data) {
       statsData.value[0].value = statsRes.data.totalStudents || 0
       statsData.value[1].value = statsRes.data.riskCount || 0
       statsData.value[2].value = statsRes.data.todoCount || 0
@@ -239,11 +242,11 @@ const loadData = async () => {
 
     // 2. 加载待办事项
     const todoRes = await getCenterApprovalList({ type: 'tutor' })
-    if (todoRes.code === 200 && todoRes.data) {
+    if (isSuccess(todoRes) && todoRes.data) {
       const todosArray = Array.isArray(todoRes.data) ? todoRes.data : (todoRes.data.list || todoRes.data.records || [])
       todoList.value = todosArray
           .filter(item => item && item.id)
-          .slice(0, 5) // 只显示前5条
+          .slice(0, 5)
           .map(item => ({
             id: item.id,
             type: item.type || 'other',
@@ -255,11 +258,11 @@ const loadData = async () => {
 
     // 3. 加载风险学生
     const riskRes = await getArchiveStudents({ riskOnly: true, limit: 5 })
-    if (riskRes.code === 200 && riskRes.data) {
+    if (isSuccess(riskRes) && riskRes.data) {
       const studentsArray = Array.isArray(riskRes.data) ? riskRes.data : (riskRes.data.list || riskRes.data.records || [])
       riskStudents.value = studentsArray
           .filter(student => student && student.id)
-          .slice(0, 5) // 只显示前5条
+          .slice(0, 5)
           .map(student => ({
             id: student.id,
             name: student.name || '未知学生',
@@ -270,34 +273,32 @@ const loadData = async () => {
           }))
     }
 
-    // 4. 模拟最近动态（如果没有真实接口）
-    recentActivities.value = [
-      { id: 1, text: '张明华完成心理测评', time: '10分钟前', color: '#10b981' },
-      { id: 2, text: '收到新的危机上报', time: '30分钟前', color: '#ef4444' },
-      { id: 3, text: '李晓红的访谈记录已更新', time: '1小时前', color: '#3b82f6' },
-      { id: 4, text: '本月月报已提交', time: '2小时前', color: '#8b5cf6' },
-    ]
+    // 4. 加载最近动态（使用真实接口）
+    try {
+      const activitiesRes = await getTutorRecentActivities(5)
+      if (isSuccess(activitiesRes) && activitiesRes.data) {
+        recentActivities.value = activitiesRes.data.map(item => ({
+          id: item.id,
+          text: item.content,
+          time: formatTime(item.createTime),
+          color: getActivityColor(item.type)
+        }))
+      } else {
+        recentActivities.value = []
+      }
+    } catch (e) {
+      console.warn('加载最近动态失败', e)
+      recentActivities.value = []
+    }
   } catch (e) {
     console.error('加载工作台数据失败:', e)
     ElMessage.warning('部分数据加载失败')
 
-    // 降级方案：使用模拟数据
-    statsData.value[0].value = 128
-    statsData.value[1].value = 5
-    statsData.value[2].value = 3
-    statsData.value[3].value = 12
-
-    todoList.value = [
-      { id: 1, type: 'crisis', typeText: '危机', content: '张某某心理危机需要跟进', time: '2小时前' },
-      { id: 2, type: 'assessment', typeText: '测评', content: '新生心理普查待提醒', time: '今天' },
-      { id: 3, type: 'activity', typeText: '活动', content: '心理健康主题班会待开展', time: '本周' },
-    ]
-
-    riskStudents.value = [
-      { id: 1, name: '张明华', className: '计科2201', level: 'red', levelText: '极高危' },
-      { id: 2, name: '李晓红', className: '计科2202', level: 'orange', levelText: '高危' },
-      { id: 3, name: '王建国', className: '计科2201', level: 'yellow', levelText: '中危' },
-    ]
+    // 清空数据，显示空状态
+    statsData.value.forEach(stat => stat.value = 0)
+    todoList.value = []
+    riskStudents.value = []
+    recentActivities.value = []
   } finally {
     loading.value = false
   }
@@ -313,6 +314,17 @@ const getTypeText = (type) => {
     other: '其他',
   }
   return map[type] || '其他'
+}
+
+const getActivityColor = (type) => {
+  const map = {
+    crisis: '#ef4444',
+    assessment: '#10b981',
+    activity: '#3b82f6',
+    report: '#8b5cf6',
+    appointment: '#f59e0b',
+  }
+  return map[type] || '#64748b'
 }
 
 const getRiskLevelText = (level) => {

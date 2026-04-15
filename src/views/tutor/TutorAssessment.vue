@@ -141,11 +141,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getMyAssessments, getAssessmentResult } from '../../api/assessment.js'
+import { getTutorAssessments } from '../../api/tutorApi'
 import { getCollegeOptions } from '../../api/commonApi'
-import { sendSiteMessage } from '../../api/message.js'
+import { getAssessmentResult } from '../../api/assessment'
+import { sendSiteMessage } from '../../api/message'
 import { exportByApi } from '../../utils/exporter'
 
 const loading = ref(false)
@@ -177,19 +179,16 @@ const getFactorTagType = (level) => {
 const loadData = async () => {
   loading.value = true
   try {
-    const params = {
+    const res = await getTutorAssessments({
       page: page.value,
       pageSize: pageSize.value,
-      keyword: searchKeyword.value,
-      classId: filterClass.value,
+      className: filterClass.value,
       status: filterStatus.value,
-      resultLevel: filterResult.value,
-    }
-    const res = await getMyAssessments(params)
-    if (res.code === 200 && res.data) {
-      // 确保 assessmentList 始终是数组
-      let dataList = []
+      result: filterResult.value,
+    })
 
+    if (res.code === 200 && res.data) {
+      let dataList = []
       if (Array.isArray(res.data)) {
         dataList = res.data
       } else if (res.data.list && Array.isArray(res.data.list)) {
@@ -206,22 +205,16 @@ const loadData = async () => {
         stats.value = res.data.stats
       }
     } else {
-      // API 返回失败，使用空数组
       assessmentList.value = []
       totalCount.value = 0
+      stats.value = { total: 0, completed: 0, rate: 0, abnormal: 0 }
     }
   } catch (e) {
     console.error('加载测评数据失败:', e)
-    // 降级方案：使用模拟数据
-    assessmentList.value = [
-      { id: 1, studentId: '2022001001', studentName: '张明华', className: '计科2201', assessmentName: '2024春季心理普查', status: 'completed', completeTime: '2024-03-15 10:30', resultLevel: 'abnormal', resultText: '异常', score: 85 },
-      { id: 2, studentId: '2022001002', studentName: '李晓红', className: '计科2202', assessmentName: '2024春季心理普查', status: 'completed', completeTime: '2024-03-14 14:20', resultLevel: 'normal', resultText: '正常', score: 42 },
-      { id: 3, studentId: '2022001003', studentName: '王建国', className: '计科2201', assessmentName: '2024春季心理普查', status: 'pending', completeTime: '-', resultLevel: null, resultText: null, score: null },
-      { id: 4, studentId: '2022001004', studentName: '赵小梅', className: '计科2203', assessmentName: '2024春季心理普查', status: 'completed', completeTime: '2024-03-13 09:15', resultLevel: 'normal', resultText: '正常', score: 38 },
-      { id: 5, studentId: '2022001005', studentName: '钱大明', className: '计科2201', assessmentName: '2024春季心理普查', status: 'pending', completeTime: '-', resultLevel: null, resultText: null, score: null },
-    ]
-    totalCount.value = 128
-    stats.value = { total: 128, completed: 115, rate: 89.8, abnormal: 8 }
+    assessmentList.value = []
+    totalCount.value = 0
+    stats.value = { total: 0, completed: 0, rate: 0, abnormal: 0 }
+    ElMessage.error('加载数据失败，请稍后重试')
   } finally {
     loading.value = false
   }

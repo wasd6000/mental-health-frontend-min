@@ -69,14 +69,22 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { Refresh, User, Document, Warning, Calendar } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
+import {
+  getStatsOverview,
+  getConsultTrend,
+  getAssessmentRate,
+  getCrisisDistribution,
+  getSlotDistribution
+} from '../../api/adminApi'
 
 const dateRange = ref([])
 const overviewData = ref([
-  { label: '本月咨询量', value: 156, icon: User, color: '#2563eb' },
-  { label: '测评完成数', value: 892, icon: Document, color: '#7c3aed' },
-  { label: '危机个案数', value: 3, icon: Warning, color: '#dc2626' },
-  { label: '预约总数', value: 234, icon: Calendar, color: '#059669' },
+  { label: '本月咨询量', value: 0, icon: User, color: '#2563eb' },
+  { label: '测评完成数', value: 0, icon: Document, color: '#7c3aed' },
+  { label: '危机个案数', value: 0, icon: Warning, color: '#dc2626' },
+  { label: '预约总数', value: 0, icon: Calendar, color: '#059669' },
 ])
 
 const consultTrendRef = ref(null)
@@ -84,6 +92,7 @@ const assessmentRateRef = ref(null)
 const crisisDistRef = ref(null)
 const slotDistRef = ref(null)
 let charts = []
+const loading = ref(false)
 
 function initCharts() {
   charts.forEach((c) => c?.dispose())
@@ -93,9 +102,9 @@ function initCharts() {
     const chart = echarts.init(consultTrendRef.value)
     chart.setOption({
       tooltip: { trigger: 'axis' },
-      xAxis: { type: 'category', data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'] },
+      xAxis: { type: 'category', data: [] },
       yAxis: { type: 'value' },
-      series: [{ type: 'line', data: [22, 18, 25, 28, 24, 15, 12], smooth: true }],
+      series: [{ type: 'line', data: [], smooth: true }],
       color: ['#2563eb'],
     })
     charts.push(chart)
@@ -108,10 +117,7 @@ function initCharts() {
       series: [{
         type: 'pie',
         radius: ['40%', '70%'],
-        data: [
-          { value: 85, name: '已完成', itemStyle: { color: '#22c55e' } },
-          { value: 15, name: '未完成', itemStyle: { color: '#e2e8f0' } },
-        ],
+        data: [],
       }],
     })
     charts.push(chart)
@@ -121,15 +127,9 @@ function initCharts() {
     const chart = echarts.init(crisisDistRef.value)
     chart.setOption({
       tooltip: { trigger: 'axis' },
-      xAxis: { type: 'category', data: ['一级', '二级', '三级'] },
+      xAxis: { type: 'category', data: [] },
       yAxis: { type: 'value' },
-      series: [{
-        type: 'bar',
-        data: [1, 1, 1],
-        itemStyle: {
-          color: (params) => ['#dc2626', '#f59e0b', '#22c55e'][params.dataIndex],
-        },
-      }],
+      series: [{ type: 'bar', data: [] }],
     })
     charts.push(chart)
   }
@@ -138,33 +138,106 @@ function initCharts() {
     const chart = echarts.init(slotDistRef.value)
     chart.setOption({
       tooltip: { trigger: 'axis' },
-      xAxis: { type: 'category', data: ['8-10', '10-12', '14-16', '16-18'] },
+      xAxis: { type: 'category', data: [] },
       yAxis: { type: 'value' },
-      series: [{ type: 'bar', data: [35, 58, 72, 45], itemStyle: { color: '#2563eb' } }],
+      series: [{ type: 'bar', data: [] }],
     })
     charts.push(chart)
   }
 }
 
-function loadData() {
-  overviewData.value = [
-    { label: '本月咨询量', value: 156 + Math.floor(Math.random() * 20), icon: User, color: '#2563eb' },
-    { label: '测评完成数', value: 892 + Math.floor(Math.random() * 50), icon: Document, color: '#7c3aed' },
-    { label: '危机个案数', value: Math.max(0, 3 + Math.floor((Math.random() - 0.7) * 2)), icon: Warning, color: '#dc2626' },
-    { label: '预约总数', value: 234 + Math.floor(Math.random() * 30), icon: Calendar, color: '#059669' },
-  ]
-  initCharts()
+async function loadData() {
+  loading.value = true
+  try {
+    const params = {}
+    if (dateRange.value && dateRange.value.length === 2) {
+      params.startDate = dateRange.value[0]
+      params.endDate = dateRange.value[1]
+    }
+
+    // 并行加载所有统计数据
+    const [overviewRes, trendRes, rateRes, crisisRes, slotRes] = await Promise.all([
+      getStatsOverview(params),
+      getConsultTrend(params),
+      getAssessmentRate(params),
+      getCrisisDistribution(params),
+      getSlotDistribution(params),
+    ])
+
+    // 更新概览数据
+    if (overviewRes?.code === 200 && overviewRes.data) {
+      overviewData.value = [
+        { label: '本月咨询量', value: overviewRes.data.consultCount || 0, icon: User, color: '#2563eb' },
+        { label: '测评完成数', value: overviewRes.data.assessmentCount || 0, icon: Document, color: '#7c3aed' },
+        { label: '危机个案数', value: overviewRes.data.crisisCount || 0, icon: Warning, color: '#dc2626' },
+        { label: '预约总数', value: overviewRes.data.appointmentCount || 0, icon: Calendar, color: '#059669' },
+      ]
+    }
+
+    // 更新咨询趋势图
+    if (trendRes?.code === 200 && trendRes.data && consultTrendRef.value) {
+      const chart = charts[0]
+      chart?.setOption({
+        xAxis: { data: trendRes.data.dates || [] },
+        series: [{ data: trendRes.data.values || [] }],
+      })
+    }
+
+    // 更新测评完成率图
+    if (rateRes?.code === 200 && rateRes.data && assessmentRateRef.value) {
+      const chart = charts[1]
+      chart?.setOption({
+        series: [{
+          data: [
+            { value: rateRes.data.completed || 0, name: '已完成', itemStyle: { color: '#22c55e' } },
+            { value: rateRes.data.incomplete || 0, name: '未完成', itemStyle: { color: '#e2e8f0' } },
+          ],
+        }],
+      })
+    }
+
+    // 更新危机分布图
+    if (crisisRes?.code === 200 && crisisRes.data && crisisDistRef.value) {
+      const chart = charts[2]
+      chart?.setOption({
+        xAxis: { data: crisisRes.data.levels || [] },
+        series: [{
+          data: crisisRes.data.values || [],
+          itemStyle: {
+            color: (params) => ['#dc2626', '#f59e0b', '#22c55e'][params.dataIndex],
+          },
+        }],
+      })
+    }
+
+    // 更新时段分布图
+    if (slotRes?.code === 200 && slotRes.data && slotDistRef.value) {
+      const chart = charts[3]
+      chart?.setOption({
+        xAxis: { data: slotRes.data.slots || [] },
+        series: [{ data: slotRes.data.values || [] }],
+      })
+    }
+  } catch (e) {
+    console.error('加载统计数据失败:', e)
+    ElMessage.error('加载数据失败，请稍后重试')
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {
+  initCharts()
   loadData()
   window.addEventListener('resize', () => charts.forEach((c) => c?.resize()))
 })
+
 onUnmounted(() => {
   window.removeEventListener('resize', () => {})
   charts.forEach((c) => c?.dispose())
 })
 </script>
+
 
 <style scoped>
 .center-statistics { max-width: 1200px; }

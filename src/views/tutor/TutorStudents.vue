@@ -141,12 +141,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { getArchiveStudents, getArchiveStudentDetail } from '../../api/centerArchive'
+import { getTutorStudents } from '../../api/tutorApi'
 import { getCollegeOptions } from '../../api/commonApi'
+import { getArchiveStudentDetail } from '../../api/centerArchive'
 import { saveConversation } from '../../api/conversationApi'
 
 const router = useRouter()
@@ -179,54 +179,40 @@ const getRiskTagType = (level) => {
 const loadData = async () => {
   loading.value = true
   try {
-    const params = {
+    const res = await getTutorStudents({
       page: page.value,
       pageSize: pageSize.value,
       keyword: searchKeyword.value,
-      classId: filterClass.value,
+      className: filterClass.value,
       riskLevel: filterRisk.value,
-    }
-    const res = await getArchiveStudents(params)
-    if (res.code === 200 && res.data) {
-      // 关键修复：确保 studentList 始终是数组
-      let dataList = []
+    })
 
+    if (res.code === 200 && res.data) {
+      let dataList = []
       if (Array.isArray(res.data)) {
-        // 情况1：data 直接是数组
         dataList = res.data
       } else if (res.data.list && Array.isArray(res.data.list)) {
-        // 情况2：data.list 是数组
         dataList = res.data.list
       } else if (res.data.records && Array.isArray(res.data.records)) {
-        // 情况3：data.records 是数组
         dataList = res.data.records
       } else if (res.data.rows && Array.isArray(res.data.rows)) {
-        // 情况4：data.rows 是数组
         dataList = res.data.rows
       }
-      // 如果以上都不是，dataList 保持为空数组 []
 
       studentList.value = dataList
       totalCount.value = res.data.total || dataList.length
       riskCount.value = res.data.riskCount || 0
     } else {
-      // API 返回失败或没有数据
       studentList.value = []
       totalCount.value = 0
       riskCount.value = 0
     }
   } catch (e) {
     console.error('加载学生列表失败:', e)
-    // 降级方案：使用模拟数据
-    studentList.value = [
-      { id: 1, studentId: '2022001001', name: '张明华', gender: '男', className: '计科2201', phone: '138****1234', riskLevel: 'red', riskLabel: '极高危', lastAssessment: '2024-03-15', lastIntervention: '3天前', dorm: '5栋301', emergencyContact: '张父', emergencyPhone: '139****5678' },
-      { id: 2, studentId: '2022001002', name: '李晓红', gender: '女', className: '计科2202', phone: '137****2345', riskLevel: 'orange', riskLabel: '高危', lastAssessment: '2024-03-10', lastIntervention: '1周前', dorm: '6栋205', emergencyContact: '李母', emergencyPhone: '136****6789' },
-      { id: 3, studentId: '2022001003', name: '王建国', gender: '男', className: '计科2201', phone: '135****3456', riskLevel: 'yellow', riskLabel: '中危', lastAssessment: '2024-03-08', lastIntervention: '2周前', dorm: '5栋302', emergencyContact: '王父', emergencyPhone: '138****7890' },
-      { id: 4, studentId: '2022001004', name: '赵小梅', gender: '女', className: '计科2203', phone: '136****4567', riskLevel: 'green', riskLabel: '低危', lastAssessment: '2024-03-01', lastIntervention: '-', dorm: '6栋301', emergencyContact: '赵母', emergencyPhone: '137****8901' },
-      { id: 5, studentId: '2022001005', name: '钱大明', gender: '男', className: '计科2201', phone: '139****5678', riskLevel: null, riskLabel: null, lastAssessment: '2024-02-20', lastIntervention: '-', dorm: '5栋303', emergencyContact: '钱父', emergencyPhone: '135****9012' },
-    ]
-    totalCount.value = 128
-    riskCount.value = 5
+    studentList.value = []
+    totalCount.value = 0
+    riskCount.value = 0
+    ElMessage.error('加载数据失败，请稍后重试')
   } finally {
     loading.value = false
   }

@@ -1,9 +1,10 @@
-import { fetchSchedule, updateSchedule } from '../mock/schedule'
+import request from './request.js'
 
-export function getScheduleAsync() {
-  return fetchSchedule()
-}
+/**
+ * 排班管理相关接口
+ */
 
-export function updateScheduleAsync(data: { date: string; time: string; counselorId: string; counselorName: string }) {
-  return updateSchedule(data)
+// 获取排班模板
+export function getScheduleTemplate(params: { counselorId?: string; weekStart?: string } = {}) {
+  return request.get('/api/schedule/template', { params })
 }

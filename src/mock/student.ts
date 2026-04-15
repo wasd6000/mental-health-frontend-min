@@ -1,7 +1,40 @@
 import { db } from './db'
+import {Appointment} from "../types/appointment";
+
+interface AssessmentParams {
+  status?: string
+}
+
+interface AssessmentSubmitData {
+  assessmentId: string | number
+  answers: any[]
+}
+
+interface ActivityJoinData {
+  activityId: string | number
+  studentId: string | number
+}
+
+interface AppointmentCreateData {
+  studentId: string | number
+  counselorId: string | number
+  counselorName: string
+  appointmentDate: string
+  appointmentTime: string
+}
+
+interface MusicEmotionType {
+  emotion: 'relax' | 'happy' | 'calm' | 'focus' | 'sleep' | 'energy'
+}
+
+interface CourseReviewData {
+  courseId: string | number
+  rating: number
+  content: string
+}
 
 // 学生测评相关模拟数据
-export function getMyAssessments(params) {
+export function getMyAssessments(params?: AssessmentParams) {
   const mockAssessments = [
     {
       id: 1,
@@ -28,14 +61,14 @@ export function getMyAssessments(params) {
       duration: 10
     }
   ]
-  
+
   return Promise.resolve({
     code: 200,
     data: mockAssessments
   })
 }
 
-export function getAssessmentDetail(id) {
+export function getAssessmentDetail(id: string | number) {
   const mockDetail = {
     id: id,
     title: '心理健康状况评估',
@@ -68,28 +101,28 @@ export function getAssessmentDetail(id) {
       }
     ]
   }
-  
+
   return Promise.resolve({
     code: 200,
     data: mockDetail
   })
 }
 
-export function startAssessment(data) {
+export function startAssessment(data: { assessmentId: string | number }) {
   return Promise.resolve({
     code: 200,
     data: { assessmentId: data.assessmentId, sessionId: 'session_' + Date.now() }
   })
 }
 
-export function submitAssessment(data) {
+export function submitAssessment(data: AssessmentSubmitData) {
   return Promise.resolve({
     code: 200,
     data: { resultId: 'result_' + Date.now() }
   })
 }
 
-export function getAssessmentResult(id) {
+export function getAssessmentResult(id: string | number) {
   const mockResult = {
     studentName: '张三',
     gender: '男',
@@ -118,7 +151,7 @@ export function getAssessmentResult(id) {
     measures: '定期进行心理测评，保持良好的生活习惯',
     responsiblePerson: '张老师'
   }
-  
+
   return Promise.resolve({
     code: 200,
     data: mockResult
@@ -126,7 +159,7 @@ export function getAssessmentResult(id) {
 }
 
 // 学生活动相关模拟数据
-export function getActivityList(params) {
+export function getActivityList(params?: any) {
   const mockActivities = [
     {
       id: 1,
@@ -153,14 +186,14 @@ export function getActivityList(params) {
       image: 'https://example.com/activity2.jpg'
     }
   ]
-  
+
   return Promise.resolve({
     code: 200,
     data: mockActivities
   })
 }
 
-export function getActivityDetail(id) {
+export function getActivityDetail(id: string | number) {
   const mockDetail = {
     id: id,
     title: '心理健康讲座',
@@ -175,35 +208,35 @@ export function getActivityDetail(id) {
     organizer: '心理中心',
     contact: '张老师 13800138000'
   }
-  
+
   return Promise.resolve({
     code: 200,
     data: mockDetail
   })
 }
 
-export function joinActivity(data) {
+export function joinActivity(data: ActivityJoinData) {
   return Promise.resolve({
     code: 200,
     data: { success: true, message: '报名成功' }
   })
 }
 
-export function cancelActivityRegistration(data) {
+export function cancelActivityRegistration(data: ActivityJoinData) {
   return Promise.resolve({
     code: 200,
     data: { success: true, message: '取消报名成功' }
   })
 }
 
-export function checkinActivity(data) {
+export function checkinActivity(data: ActivityJoinData) {
   return Promise.resolve({
     code: 200,
     data: { success: true, message: '签到成功' }
   })
 }
 
-export function getMyActivities(params) {
+export function getMyActivities(params?: any) {
   const mockMyActivities = [
     {
       id: 1,
@@ -224,7 +257,7 @@ export function getMyActivities(params) {
       checkinStatus: 'not_checked_in'
     }
   ]
-  
+
   return Promise.resolve({
     code: 200,
     data: mockMyActivities
@@ -240,97 +273,103 @@ function generateId() {
   return 'apt_' + Date.now() + '_' + Math.floor(Math.random() * 1000)
 }
 
-export function createAppointmentForStudent(data) {
-  const appointment = {
+export function createAppointmentForStudent(data: AppointmentCreateData) {
+  const appointment: Appointment = {
     id: generateId(),
-    studentId: data.studentId,
-    counselorId: data.counselorId,
-    counselorName: data.counselorName,
-    appointmentDate: data.appointmentDate,
-    appointmentTime: data.appointmentTime,
-    status: 'draft',
+    studentId: String(data.studentId),
+    counselorId: String(data.counselorId),
+    date: data.appointmentDate,
     create_time: now(),
-    update_time: now(),
+    end_time: data.appointmentTime,
+    type: 'student',
+    status: 'draft',
+    counselorName: data.counselorName,
     timeline: [
       { status: 'draft', time: now() }
     ]
   }
-  
+
   db.pushAppointment(appointment)
-  
+
   return Promise.resolve({
     code: 200,
     data: { ...appointment },
   })
 }
 
-export function updateAppointmentStatus(id, status, payload) {
+export function updateAppointmentStatus(id: string, status: string, payload?: any) {
   const ok = db.updateAppointment(id, a => {
     a.status = status
-    a.update_time = now()
-    
+    a.updated_at = now()
+
     a.timeline.push({
       status,
       time: now(),
     })
-    
+
     if (payload) {
       Object.assign(a, payload)
     }
   })
-  
+
   if (!ok) {
     return Promise.reject({
       code: 404,
       message: '预约不存在',
     })
   }
-  
+
   const appointment = db.appointments.find(a => a.id === id)
-  
+
   return Promise.resolve({
     code: 200,
     data: appointment,
   })
 }
 
-export function getAppointmentsByStudent(studentId) {
+export function getAppointmentsByStudent(studentId: string | number) {
   const list = db.appointments.filter(a => a.studentId === studentId)
-  
+
   return Promise.resolve({
     code: 200,
     data: list,
   })
 }
 
-export function getAvailableSlots(date) {
+export function getAvailableSlots(date: string) {
   const schedule = [
     { date: date, time: '09:00-10:00', counselorId: '1', counselorName: '张老师' },
     { date: date, time: '10:00-11:00', counselorId: '1', counselorName: '张老师' },
     { date: date, time: '14:00-15:00', counselorId: '2', counselorName: '李老师' },
     { date: date, time: '15:00-16:00', counselorId: '2', counselorName: '李老师' }
   ]
-  
+
   const used = db.appointments
-    .filter(a => a.appointmentDate === date)
-    .map(a => a.appointmentTime)
-  
+      .filter(a => a.date === date)
+      .map(a => a.end_time)
+
   const result = schedule.filter(s => !used.includes(s.time))
-  
-  return Promise.resolve(result)
+
+  return Promise.resolve({
+    code: 200,
+    data: result,
+  })
 }
 
-export function getAvailableDates(start, days = 10) {
+export function getAvailableDates(start: string, days = 10) {
   const dates = []
   const startDay = new Date(start)
-  
+
   for (let i = 0; i < days; i++) {
     const date = new Date(startDay)
     date.setDate(date.getDate() + i)
     dates.push(date.toISOString().slice(0, 10))
   }
-  
-  return Promise.resolve(dates)
+
+  return Promise.resolve({
+    code: 200,
+    data: dates,
+  })
 }
 
 // 心理微课相关模拟数据
@@ -386,14 +425,14 @@ export function getMicroCourseList() {
       ]
     }
   ]
-  
+
   return Promise.resolve({
     code: 200,
     data: mockCourses
   })
 }
 
-export function getMicroCourseDetail(id) {
+export function getMicroCourseDetail(id: string | number) {
   const mockDetail = {
     id: id,
     title: '情绪管理基础',
@@ -412,14 +451,14 @@ export function getMicroCourseDetail(id) {
       { id: 4, title: '情绪调节方法', duration: '12:00', isLocked: true, isCurrent: false, startTime: 1380 }
     ]
   }
-  
+
   return Promise.resolve({
     code: 200,
     data: mockDetail
   })
 }
 
-export function updateMicroCourseProgress(data) {
+export function updateMicroCourseProgress(data: { courseId: string | number; progress: number }) {
   return Promise.resolve({
     code: 200,
     data: { success: true }
@@ -490,14 +529,14 @@ export function getMusicList() {
       isFavorite: false
     }
   ]
-  
+
   return Promise.resolve({
     code: 200,
     data: mockMusic
   })
 }
 
-export function getMusicByEmotion(emotion) {
+export function getMusicByEmotion(emotion: MusicEmotionType['emotion']) {
   const emotionMap = {
     relax: ['放松', '平静'],
     happy: ['愉悦', '活力'],
@@ -506,10 +545,10 @@ export function getMusicByEmotion(emotion) {
     sleep: ['助眠'],
     energy: ['活力']
   }
-  
+
   const categories = emotionMap[emotion] || []
   const allMusic = []
-  
+
   return getMusicList().then(res => {
     const filtered = res.data.filter(m => categories.includes(m.category))
     return Promise.resolve({
@@ -519,7 +558,7 @@ export function getMusicByEmotion(emotion) {
   })
 }
 
-export function getMusicDetail(id) {
+export function getMusicDetail(id: string | number) {
   return getMusicList().then(res => {
     const music = res.data.find(m => m.id === id)
     return Promise.resolve({
@@ -647,38 +686,49 @@ export function getHealthCourseList() {
       ]
     }
   ]
-  
+
   return Promise.resolve({
     code: 200,
     data: mockCourses
   })
 }
 
-export function getHealthCourseDetail(id) {
+export function getHealthCourseDetail(id: string | number) {
   return getHealthCourseList().then(res => {
     const course = res.data.find(c => c.id === id)
-    course.ratingDistribution = {
-      5: 180,
-      4: 50,
-      3: 20,
-      2: 5,
-      1: 1
+    if (!course) {
+      return Promise.reject({
+        code: 404,
+        message: '课程不存在',
+      })
     }
+
+    const courseWithRating = {
+      ...course,
+      ratingDistribution: {
+        5: 180,
+        4: 50,
+        3: 20,
+        2: 5,
+        1: 1
+      }
+    }
+
     return Promise.resolve({
       code: 200,
-      data: course
+      data: courseWithRating
     })
   })
 }
 
-export function enrollHealthCourse(courseId) {
+export function enrollHealthCourse(courseId: string | number) {
   return Promise.resolve({
     code: 200,
     data: { success: true }
   })
 }
 
-export function getHealthCourseReviews(courseId) {
+export function getHealthCourseReviews(courseId: string | number) {
   const mockReviews = [
     {
       id: 1,
@@ -708,14 +758,14 @@ export function getHealthCourseReviews(courseId) {
       likeCount: 31
     }
   ]
-  
+
   return Promise.resolve({
     code: 200,
     data: mockReviews
   })
 }
 
-export function submitHealthCourseReview(data) {
+export function submitHealthCourseReview(data: CourseReviewData) {
   return Promise.resolve({
     code: 200,
     data: { success: true }

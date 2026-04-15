@@ -86,17 +86,20 @@
   </div>
 </template>
 
-<script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
-import { Refresh } from '@element-plus/icons-vue'
+<script setup>import { ref, reactive, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
+import {
+  getInterviewTasks,
+  createInterviewTask,
+  getInterviewRecords
+} from '../../api/tutorApi'
 
 const activeTab = ref('task')
-const taskDialogVisible = ref(false)
 const taskList = ref([])
 const recordList = ref([])
-const counselorList = ref([{ id: 'C1', name: '张老师' }, { id: 'C2', name: '李老师' }, { id: 'C3', name: '王老师' }])
-const recordFilter = reactive({ keyword: '' })
+const taskDialogVisible = ref(false)
+const loading = ref(false)
 
 const taskForm = reactive({
   title: '',
@@ -105,26 +108,48 @@ const taskForm = reactive({
   assignee: '',
 })
 
-const MOCK_TASKS = [
-  { id: 1, title: '2024级新生心理普查访谈', targetCount: 120, completedCount: 85, deadline: '2025-04-15', assignee: '张老师', status: '进行中' },
-  { id: 2, title: '高关怀学生跟进访谈', targetCount: 30, completedCount: 30, deadline: '2025-03-20', assignee: '李老师', status: '已完成' },
-]
-
-const MOCK_RECORDS = [
-  { id: 1, studentName: '张三', studentId: '2024001001', interviewDate: '2025-03-03', interviewer: '张老师', summary: '学生近期学业压力较大，情绪稳定，建议定期跟进' },
-  { id: 2, studentName: '李四', studentId: '2024001002', interviewDate: '2025-03-02', interviewer: '李老师', summary: '人际关系良好，无异常' },
-]
-
-function loadData() {
-  taskList.value = [...MOCK_TASKS]
+async function loadData() {
+  loading.value = true
+  try {
+    const res = await getInterviewTasks()
+    if (res?.code === 200 && Array.isArray(res.data)) {
+      taskList.value = res.data
+    } else {
+      taskList.value = []
+      ElMessage.warning('获取任务列表失败')
+    }
+  } catch (e) {
+    console.error('加载任务列表失败:', e)
+    taskList.value = []
+    ElMessage.error('加载数据失败，请稍后重试')
+  } finally {
+    loading.value = false
+  }
 }
 
-function loadRecords() {
-  recordList.value = [...MOCK_RECORDS]
+async function loadRecords() {
+  loading.value = true
+  try {
+    const res = await getInterviewRecords()
+    if (res?.code === 200 && Array.isArray(res.data)) {
+      recordList.value = res.data
+    } else {
+      recordList.value = []
+      ElMessage.warning('获取访谈记录失败')
+    }
+  } catch (e) {
+    console.error('加载访谈记录失败:', e)
+    recordList.value = []
+    ElMessage.error('加载数据失败，请稍后重试')
+  } finally {
+    loading.value = false
+  }
 }
 
 watch(activeTab, (val) => {
-  if (val === 'record') loadRecords()
+  if (val === 'record') {
+    loadRecords()
+  }
 })
 
 function openTaskDialog() {
@@ -135,19 +160,28 @@ function openTaskDialog() {
   taskDialogVisible.value = true
 }
 
-function saveTask() {
+async function saveTask() {
   if (!taskForm.title) {
     ElMessage.warning('请输入任务名称')
     return
   }
-  taskList.value.unshift({
-    id: Date.now(),
-    ...taskForm,
-    completedCount: 0,
-    status: '进行中',
-  })
-  taskDialogVisible.value = false
-  ElMessage.success('任务已创建')
+
+  loading.value = true
+  try {
+    const res = await createInterviewTask(taskForm)
+    if (res?.code === 200) {
+      ElMessage.success('任务已创建')
+      taskDialogVisible.value = false
+      await loadData()
+    } else {
+      ElMessage.error(res?.msg || '创建失败')
+    }
+  } catch (e) {
+    console.error('创建任务失败:', e)
+    ElMessage.error(e?.response?.data?.msg || e?.message || '创建失败')
+  } finally {
+    loading.value = false
+  }
 }
 
 function viewTaskDetail(row) {

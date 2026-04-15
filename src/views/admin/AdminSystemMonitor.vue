@@ -166,8 +166,8 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+<script setup>import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import {
   Refresh,
   CircleCheck,
@@ -179,67 +179,44 @@ import {
   Timer,
   Search,
 } from '@element-plus/icons-vue'
+import {
+  getSystemHealth,
+  getSystemMetrics,
+  getSystemAlerts,
+  getOperationLogs
+} from '../../api/adminApi'
 
-const services = ref([
-  { name: 'API 服务', desc: '后端接口', status: 'ok', statusText: '正常' },
-  { name: '数据库', desc: 'MySQL', status: 'ok', statusText: '正常' },
-  { name: '缓存', desc: 'Redis', status: 'warning', statusText: '偏高' },
-  { name: '文件存储', desc: 'OSS', status: 'ok', statusText: '正常' },
-])
-
+const services = ref([])
 const metrics = ref({
-  cpu: 42,
-  memory: 68,
-  disk: 55,
-  responseMs: 128,
+  cpu: 0,
+  memory: 0,
+  disk: 0,
+  responseMs: 0,
 })
-
-const alerts = ref([
-  {
-    id: 1,
-    title: 'Redis 内存使用率偏高',
-    type: 'warning',
-    description: '当前 Redis 内存使用率达 82%，建议关注或扩容。',
-  },
-])
-
-const logs = ref([
-  { id: 1, time: '2025-03-04 10:32:15', operator: 'admin', module: '用户管理', action: '编辑用户权限', ip: '192.168.1.100', result: '成功' },
-  { id: 2, time: '2025-03-04 10:28:03', operator: 'center_01', module: '危机审批', action: '通过危机个案', ip: '192.168.1.101', result: '成功' },
-  { id: 3, time: '2025-03-04 10:15:22', operator: 'admin', module: '系统管理', action: '修改系统参数', ip: '192.168.1.100', result: '成功' },
-  { id: 4, time: '2025-03-04 09:58:40', operator: 'center_01', module: '咨询师管理', action: '新增咨询师', ip: '192.168.1.101', result: '成功' },
-  { id: 5, time: '2025-03-04 09:45:12', operator: 'counselor_02', module: '个案管理', action: '提交咨询记录', ip: '192.168.1.102', result: '成功' },
-  { id: 6, time: '2025-03-04 09:30:08', operator: 'admin', module: '数据管理', action: '导出报表', ip: '192.168.1.100', result: '成功' },
-])
-
+const alerts = ref([])
+const allLogs = ref([])
 const logKeyword = ref('')
 const logPage = ref(1)
 const logPageSize = ref(10)
+const loading = ref(false)
+let refreshTimer = null
 
 const overallStatus = computed(() => {
   const hasError = services.value.some((s) => s.status === 'error')
   const hasWarning = services.value.some((s) => s.status === 'warning')
-  if (hasError) {
-    return { type: 'danger', text: '异常' }
-  }
-  if (hasWarning) {
-    return { type: 'warning', text: '部分异常' }
-  }
+  if (hasError) return { type: 'danger', text: '异常' }
+  if (hasWarning) return { type: 'warning', text: '警告' }
   return { type: 'success', text: '正常' }
 })
 
 const filteredLogs = computed(() => {
-  let list = logs.value
-  if (logKeyword.value) {
-    const k = logKeyword.value.toLowerCase()
-    list = list.filter(
+  if (!logKeyword.value) return allLogs.value
+  const k = logKeyword.value.toLowerCase()
+  return allLogs.value.filter(
       (l) =>
-        l.operator.toLowerCase().includes(k) ||
-        l.module.toLowerCase().includes(k) ||
-        l.action.toLowerCase().includes(k)
-    )
-  }
-  return list
+          l.operator?.toLowerCase().includes(k) ||
+          l.module?.toLowerCase().includes(k)
+  )
 })
 
 const paginatedLogs = computed(() => {
@@ -248,32 +225,87 @@ const paginatedLogs = computed(() => {
   return list.slice(start, start + logPageSize.value)
 })
 
-function getProgressColor(pct) {
-  if (pct >= 80) return '#ef4444'
-  if (pct >= 60) return '#f59e0b'
-  return '#22c55e'
+function getProgressColor(value) {
+  if (value < 60) return '#22c55e'
+  if (value < 80) return '#f59e0b'
+  return '#dc2626'
 }
 
 function filterLogs() {
   logPage.value = 1
 }
 
-function loadData() {
-  // 模拟刷新：随机微调指标
-  metrics.value = {
-    cpu: Math.min(95, Math.max(20, metrics.value.cpu + (Math.random() - 0.5) * 20)),
-    memory: Math.min(95, Math.max(30, metrics.value.memory + (Math.random() - 0.5) * 15)),
-    disk: metrics.value.disk,
-    responseMs: Math.round(80 + Math.random() * 100),
+async function loadData() {
+  loading.value = true
+  try {
+    // 并行加载所有监控数据
+    const [healthRes, metricsRes, alertsRes, logsRes] = await Promise.all([
+      getSystemHealth(),
+      getSystemMetrics(),
+      getSystemAlerts({ status: 'active' }),
+      getOperationLogs({ page: 1, pageSize: 50 }),
+    ])
+
+    // 更新服务状态
+    if (healthRes?.code === 200 && healthRes.data) {
+      services.value = healthRes.data.services?.map(svc => ({
+        name: svc.name,
+        desc: svc.description || '',
+        status: svc.status === 'UP' ? 'ok' : (svc.status === 'DEGRADED' ? 'warning' : 'error'),
+        statusText: svc.status === 'UP' ? '正常' : (svc.status === 'DEGRADED' ? '偏高' : '异常'),
+      })) || []
+    }
+
+    // 更新性能指标
+    if (metricsRes?.code === 200 && metricsRes.data) {
+      metrics.value = {
+        cpu: metricsRes.data.cpuUsage || 0,
+        memory: metricsRes.data.memoryUsage || 0,
+        disk: metricsRes.data.diskUsage || 0,
+        responseMs: metricsRes.data.avgResponseTime || 0,
+      }
+    }
+
+    // 更新告警列表
+    if (alertsRes?.code === 200 && Array.isArray(alertsRes.data)) {
+      alerts.value = alertsRes.data.map(a => ({
+        id: a.id,
+        title: a.title,
+        type: a.level === 'HIGH' ? 'error' : (a.level === 'MEDIUM' ? 'warning' : 'info'),
+        description: a.message,
+      }))
+    }
+
+    // 更新操作日志
+    if (logsRes?.code === 200 && logsRes.data) {
+      const logList = logsRes.data.list || logsRes.data.records || []
+      allLogs.value = logList.map(log => ({
+        time: log.createTime || log.timestamp,
+        operator: log.operator || log.username,
+        module: log.module,
+        action: log.action,
+        ip: log.ip,
+        result: log.result === 'SUCCESS' ? '成功' : '失败',
+      }))
+    }
+  } catch (e) {
+    console.error('加载监控数据失败:', e)
+    ElMessage.error('加载监控数据失败')
+  } finally {
+    loading.value = false
   }
 }
 
-let refreshTimer = null
 onMounted(() => {
-  refreshTimer = setInterval(loadData, 60000)
+  loadData()
+  // 每30秒自动刷新
+  refreshTimer = setInterval(loadData, 30000)
 })
+
 onUnmounted(() => {
-  if (refreshTimer) clearInterval(refreshTimer)
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+  }
 })
 </script>
 

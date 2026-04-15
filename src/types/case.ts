@@ -1,4 +1,4 @@
-// src/types/case.ts
+// src/types/case.js
 
 // 危机个案表类型定义，严格对齐数据库说明文档
 export interface Case {

@@ -88,12 +88,16 @@
   </div>
 </template>
 
-<script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+<script setup>import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
-import { getArchiveCounselors } from '../../api/centerArchive'
+import {
+  getAdminCounselors,
+  createAdminCounselor,
+  updateAdminCounselor,
+  deleteAdminCounselor
+} from '../../api/adminApi'
 
 const router = useRouter()
 const loading = ref(false)
@@ -116,12 +120,6 @@ const counselorForm = reactive({
   specialty: '',
 })
 
-const MOCK_LIST = [
-  { id: 'C1', workNo: 'C001', name: '张老师', title: '心理咨询师', phone: '13800138001', specialty: '情绪管理、学业压力', status: 'active' },
-  { id: 'C2', workNo: 'C002', name: '李老师', title: '心理咨询师', phone: '13800138002', specialty: '人际关系、自我探索', status: 'active' },
-  { id: 'C3', workNo: 'C003', name: '王老师', title: '心理治疗师', phone: '13800138003', specialty: '焦虑抑郁、危机干预', status: 'active' },
-]
-
 const filteredList = computed(() => {
   let list = counselorList.value
   if (filter.keyword) {
@@ -141,16 +139,20 @@ const paginatedList = computed(() => {
 async function loadData() {
   loading.value = true
   try {
-    const res = await getArchiveCounselors(filter)
+    const res = await getAdminCounselors(filter)
     if (res?.code === 200 && Array.isArray(res.data)) {
       counselorList.value = res.data
     } else {
-      counselorList.value = [...MOCK_LIST]
+      counselorList.value = []
+      ElMessage.warning('获取数据失败')
     }
-  } catch {
-    counselorList.value = [...MOCK_LIST]
+  } catch (e) {
+    console.error('加载咨询师列表失败:', e)
+    counselorList.value = []
+    ElMessage.error('加载数据失败，请稍后重试')
+  } finally {
+    loading.value = false
   }
-  loading.value = false
 }
 
 function resetFilter() {
@@ -178,34 +180,69 @@ function openCounselorDialog(row = null) {
   counselorDialogVisible.value = true
 }
 
-function saveCounselor() {
+async function saveCounselor() {
   if (!counselorForm.workNo || !counselorForm.name) {
     ElMessage.warning('请填写工号和姓名')
     return
   }
-  if (editingCounselor.value) {
-    const idx = counselorList.value.findIndex((c) => c.id === editingCounselor.value.id)
-    if (idx >= 0) {
-      counselorList.value[idx] = { ...counselorList.value[idx], ...counselorForm }
+
+  loading.value = true
+  try {
+    let res
+    if (editingCounselor.value) {
+      // 更新现有咨询师
+      res = await updateAdminCounselor(editingCounselor.value.id, counselorForm)
+    } else {
+      // 创建新咨询师
+      res = await createAdminCounselor(counselorForm)
     }
-  } else {
-    counselorList.value.push({
-      id: 'C' + Date.now(),
-      ...counselorForm,
-      status: 'active',
-    })
+
+    if (res?.code === 200) {
+      ElMessage.success('保存成功')
+      counselorDialogVisible.value = false
+      await loadData()
+    } else {
+      ElMessage.error(res?.msg || '保存失败')
+    }
+  } catch (e) {
+    console.error('保存咨询师失败:', e)
+    ElMessage.error(e?.response?.data?.msg || e?.message || '保存失败')
+  } finally {
+    loading.value = false
   }
-  counselorDialogVisible.value = false
-  ElMessage.success('保存成功')
 }
 
 function viewSchedule(row) {
   router.push({ path: '/admin/schedule', query: { counselorId: row.id } })
 }
 
-function toggleStatus(row) {
-  row.status = row.status === 'active' ? 'inactive' : 'active'
-  ElMessage.success(row.status === 'active' ? '已启用' : '已停用')
+async function toggleStatus(row) {
+  const action = row.status === 'active' ? '停用' : '启用'
+  try {
+    await ElMessageBox.confirm(
+        `确定要${action}咨询师"${row.name}"吗？`,
+        '提示',
+        { type: 'warning' }
+    )
+
+    loading.value = true
+    const newStatus = row.status === 'active' ? 'inactive' : 'active'
+    const res = await updateAdminCounselor(row.id, { status: newStatus })
+
+    if (res?.code === 200) {
+      ElMessage.success(`${action}成功`)
+      await loadData()
+    } else {
+      ElMessage.error(res?.msg || `${action}失败`)
+    }
+  } catch (e) {
+    if (e !== 'cancel') {
+      console.error('切换状态失败:', e)
+      ElMessage.error(e?.response?.data?.msg || e?.message || `${action}失败`)
+    }
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {

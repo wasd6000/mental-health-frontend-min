@@ -606,16 +606,26 @@ async function loadData() {
     ])
 
     if (assessmentRes.code === 200) {
-      const pending = assessmentRes.data.filter(a => a.status === 'pending')
+      // 兼容多种数据结构
+      const assessmentData = Array.isArray(assessmentRes.data)
+          ? assessmentRes.data
+          : (assessmentRes.data?.records || assessmentRes.data?.list || [])
+
+      const pending = assessmentData.filter(a => a.status === 'pending')
       stats.value.pendingAssessments = pending.length
       pendingAssessments.value = pending.slice(0, 3)
     }
 
     if (activityRes.code === 200) {
-      stats.value.registeredActivities = activityRes.data.length
-      upcomingActivities.value = activityRes.data
-        .filter(a => a.status === 'registered')
-        .slice(0, 3)
+      // 兼容多种数据结构
+      const activityData = Array.isArray(activityRes.data)
+          ? activityRes.data
+          : (activityRes.data?.records || activityRes.data?.list || [])
+
+      stats.value.registeredActivities = activityData.length
+      upcomingActivities.value = activityData
+          .filter(a => a.status === 'registered')
+          .slice(0, 3)
     }
   } catch (error) {
     console.error('加载数据失败:', error)

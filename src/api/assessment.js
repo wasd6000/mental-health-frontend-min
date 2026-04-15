@@ -1,17 +1,13 @@
 import request from './request.js'
 import { isApiSuccess, unwrapListPayload } from './helpers.js'
-import * as studentMock from '../mock/student.ts'
 
 /** 设为 true 时走本地 mock（仅开发调 UI）；默认走真实接口 */
 const useMockStudentAssessment =
-  typeof import.meta !== 'undefined' &&
-  import.meta.env &&
-  import.meta.env.VITE_USE_MOCK_STUDENT_ASSESSMENT === 'true'
+    typeof import.meta !== 'undefined' &&
+    import.meta.env &&
+    import.meta.env.VITE_USE_MOCK_STUDENT_ASSESSMENT === 'true'
 
 export function getMyAssessments(params) {
-  if (useMockStudentAssessment) {
-    return studentMock.getMyAssessments(params)
-  }
   return request.get('/api/assessment/my-list', { params })
 }
 
@@ -20,7 +16,8 @@ export function getMyAssessments(params) {
  */
 export async function getAssessmentDetail(id) {
   if (useMockStudentAssessment) {
-    return studentMock.getAssessmentDetail(id)
+    // Deleted:return studentMock.getAssessmentDetail(id)
+    throw new Error('Mock模式已禁用，请关闭 VITE_USE_MOCK_STUDENT_ASSESSMENT')
   }
   try {
     return await request.get(`/api/assessment/scales/${encodeURIComponent(id)}`)
@@ -30,23 +27,14 @@ export async function getAssessmentDetail(id) {
 }
 
 export function startAssessment(data) {
-  if (useMockStudentAssessment) {
-    return studentMock.startAssessment(data)
-  }
   return request.post('/api/assessment/start', data)
 }
 
 export function submitAssessment(data) {
-  if (useMockStudentAssessment) {
-    return studentMock.submitAssessment(data)
-  }
   return request.post('/api/assessment/submit', data)
 }
 
 export function getAssessmentResult(id) {
-  if (useMockStudentAssessment) {
-    return studentMock.getAssessmentResult(id)
-  }
   return request.get('/api/assessment/result', { params: { id } })
 }
 

@@ -102,7 +102,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getArchiveStudents } from '../../api/centerArchive'
+import { getAdminStudents } from '../../api/adminApi'
 
 const router = useRouter()
 const loading = ref(false)
@@ -124,14 +124,6 @@ const filter = reactive({
   college: '',
   riskLevel: '',
 })
-
-const MOCK_LIST = [
-  { id: 1, studentId: '2022001001', name: '张明华', gender: '男', college: '计算机学院', className: '计科2201', tutorName: '李辅导员', riskLevel: 'red', riskLabel: '极高危', lastAssessment: '2024-03-15', lastIntervention: '3天前', phone: '138****1234', emergencyContact: '张父' },
-  { id: 2, studentId: '2022001002', name: '李晓红', gender: '女', college: '计算机学院', className: '计科2202', tutorName: '李辅导员', riskLevel: 'orange', riskLabel: '高危', lastAssessment: '2024-03-10', lastIntervention: '1周前', phone: '137****2345', emergencyContact: '李母' },
-  { id: 3, studentId: '2022001003', name: '王建国', gender: '男', college: '经济学院', className: '经管2201', tutorName: '王辅导员', riskLevel: 'yellow', riskLabel: '中危', lastAssessment: '2024-03-08', lastIntervention: '2周前', phone: '135****3456', emergencyContact: '王父' },
-  { id: 4, studentId: '2022001004', name: '赵小梅', gender: '女', college: '经济学院', className: '经管2202', tutorName: '王辅导员', riskLevel: 'green', riskLabel: '低危', lastAssessment: '2024-03-01', lastIntervention: '-', phone: '136****4567', emergencyContact: '赵母' },
-  { id: 5, studentId: '2022001005', name: '钱大明', gender: '男', college: '文学院', className: '中文2201', tutorName: '张辅导员', riskLevel: null, riskLabel: null, lastAssessment: '2024-02-20', lastIntervention: '-', phone: '139****5678', emergencyContact: '钱父' },
-]
 
 const getRiskTagType = (level) => {
   const map = { red: 'danger', orange: 'warning', yellow: '', green: 'success' }
@@ -162,20 +154,30 @@ const paginatedList = computed(() => {
 async function loadData() {
   loading.value = true
   try {
-    const res = await getArchiveStudents({ page: page.value, pageSize: pageSize.value, ...filter })
+    const res = await getAdminStudents({
+      page: page.value,
+      pageSize: pageSize.value,
+      ...filter
+    })
     if (res?.code === 200 && res.data) {
-      studentList.value = res.data.list || res.data || []
-      totalCount.value = res.data.total ?? studentList.value.length
-      riskCount.value = res.data.riskCount ?? studentList.value.filter((s) => s.riskLevel).length
+      studentList.value = res.data.list || []
+      totalCount.value = res.data.total ?? 0
+      riskCount.value = res.data.riskCount ?? 0
     } else {
-      throw new Error('no data')
+      studentList.value = []
+      totalCount.value = 0
+      riskCount.value = 0
+      ElMessage.warning('获取数据失败')
     }
-  } catch {
-    studentList.value = [...MOCK_LIST]
-    totalCount.value = 128
-    riskCount.value = 5
+  } catch (e) {
+    console.error('加载学生列表失败:', e)
+    studentList.value = []
+    totalCount.value = 0
+    riskCount.value = 0
+    ElMessage.error('加载数据失败，请稍后重试')
+  } finally {
+    loading.value = false
   }
-  loading.value = false
 }
 
 function resetFilter() {

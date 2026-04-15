@@ -76,8 +76,7 @@
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted, watch } from 'vue'
+<script setup>import { ref, onMounted, watch } from 'vue'
 import { Refresh } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getLeaveApprovalList, approveLeave, rejectLeave } from '../../api/leaveApi'
@@ -90,39 +89,39 @@ const rejectVisible = ref(false)
 const rejectReason = ref('')
 const rejectTarget = ref(null)
 
-const MOCK_PENDING = [
-  { id: 'L001', counselorName: '张老师', leaveDate: '2025-03-06', leaveTime: '09:00-12:00', reason: '个人事务需外出办理', applyTime: '2025-03-04 10:30' },
-  { id: 'L002', counselorName: '李老师', leaveDate: '2025-03-08', leaveTime: '14:00-17:00', reason: '参加学术会议', applyTime: '2025-03-04 11:20' },
-]
-
-const MOCK_PROCESSED = [
-  { id: 'L003', counselorName: '王老师', leaveDate: '2025-03-02', leaveTime: '全天', reason: '身体不适', status: 'approved', approveTime: '2025-03-01 15:00', approver: 'admin' },
-  { id: 'L004', counselorName: '赵老师', leaveDate: '2025-03-03', leaveTime: '09:00-12:00', reason: '临时有事', status: 'rejected', approveTime: '2025-03-02 16:30', approver: 'admin' },
-]
-
 async function loadData() {
   try {
     const res = await getLeaveApprovalList({ status: 'pending' })
     if (res?.code === 200 && Array.isArray(res.data)) {
       pendingList.value = res.data
     } else {
-      pendingList.value = [...MOCK_PENDING]
+      pendingList.value = []
+      ElMessage.warning('获取待审批列表失败')
     }
-  } catch {
-    pendingList.value = [...MOCK_PENDING]
+  } catch (e) {
+    console.error('加载待审批列表失败:', e)
+    pendingList.value = []
+    ElMessage.error('加载数据失败，请稍后重试')
   }
 }
 
 async function loadProcessed() {
   try {
-    const res = await getLeaveApprovalList({ status: filterStatus.value })
+    const params = {}
+    if (filterStatus.value) {
+      params.status = filterStatus.value
+    }
+    const res = await getLeaveApprovalList(params)
     if (res?.code === 200 && Array.isArray(res.data)) {
       processedList.value = res.data
     } else {
-      processedList.value = [...MOCK_PROCESSED]
+      processedList.value = []
+      ElMessage.warning('获取已处理列表失败')
     }
-  } catch {
-    processedList.value = [...MOCK_PROCESSED]
+  } catch (e) {
+    console.error('加载已处理列表失败:', e)
+    processedList.value = []
+    ElMessage.error('加载数据失败，请稍后重试')
   }
 }
 
@@ -136,23 +135,21 @@ function approve(row) {
   ElMessageBox.confirm('通过后将自动关闭该时段排班，学生无法预约。确定通过？', '确认通过', {
     type: 'info',
   })
-    .then(() => {
-      approveLeave({ id: row.id })
-        .then((res) => {
+      .then(async () => {
+        try {
+          const res = await approveLeave({ id: row.id })
           if (res?.code === 200) {
             ElMessage.success('已通过')
-            loadData()
+            await loadData()
           } else {
-            pendingList.value = pendingList.value.filter((l) => l.id !== row.id)
-            ElMessage.success('已通过（演示）')
+            ElMessage.error(res?.msg || '审批失败')
           }
-        })
-        .catch(() => {
-          pendingList.value = pendingList.value.filter((l) => l.id !== row.id)
-          ElMessage.success('已通过（演示）')
-        })
-    })
-    .catch(() => {})
+        } catch (e) {
+          console.error('审批失败:', e)
+          ElMessage.error(e?.response?.data?.msg || e?.message || '审批失败')
+        }
+      })
+      .catch(() => {})
 }
 
 function reject(row) {
@@ -161,23 +158,26 @@ function reject(row) {
   rejectVisible.value = true
 }
 
-function confirmReject() {
+async function confirmReject() {
   const row = rejectTarget.value
-  rejectLeave({ id: row.id, reason: rejectReason.value })
-    .then((res) => {
-      if (res?.code === 200) {
-        ElMessage.success('已拒绝')
-      } else {
-        pendingList.value = pendingList.value.filter((l) => l.id !== row.id)
-        ElMessage.success('已拒绝（演示）')
-      }
-    })
-    .catch(() => {
-      pendingList.value = pendingList.value.filter((l) => l.id !== row.id)
-      ElMessage.success('已拒绝（演示）')
-    })
-  rejectVisible.value = false
-  loadData()
+  if (!rejectReason.value.trim()) {
+    ElMessage.warning('请填写拒绝原因')
+    return
+  }
+
+  try {
+    const res = await rejectLeave({ id: row.id, reason: rejectReason.value })
+    if (res?.code === 200) {
+      ElMessage.success('已拒绝')
+      rejectVisible.value = false
+      await loadData()
+    } else {
+      ElMessage.error(res?.msg || '拒绝失败')
+    }
+  } catch (e) {
+    console.error('拒绝失败:', e)
+    ElMessage.error(e?.response?.data?.msg || e?.message || '拒绝失败')
+  }
 }
 
 onMounted(() => {

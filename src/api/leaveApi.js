@@ -69,6 +69,14 @@ export function getLeaveApprovalList(params = {}) {
   return request.get('/api/counselor/leave/approval/list', { params })
 }
 
+/**
+ * 拒绝请假（兼容旧接口）
+ * POST /api/leave/reject
+ */
+export function rejectLeave(data) {
+  return request.post('/api/leave/reject', data)
+}
+
 // ==================== 枚举值映射 ====================
 
 /**

@@ -417,8 +417,8 @@ import {
   Warning,
   Flag,
 } from '@element-plus/icons-vue'
-import { exportByApi } from '../../../utils/exporter'
-import { getProfileDetail } from '../../../api/profileApi.js'
+import { getProfileDetail } from '../../../api/profileApi'
+import { isSuccess } from '../../../utils/responseHelper'
 
 const router = useRouter()
 const avatarUrl = ref('')
@@ -476,116 +476,67 @@ onMounted(async () => {
   await loadProfile()
 })
 
-/** 接口不可用时使用的演示数据（与页面字段一致） */
-const MOCK_PROFILE = {
-  name: '张三',
-  studentId: '2024001',
-  gender: 1,
-  age: 19,
-  birthday: '2007-01-01',
-  nation: '汉族',
-  college: '计算机学院',
-  major: '计算机科学与技术',
-  class: '计算机科学与技术1班',
-  enrollmentDate: '2024-09-01',
-  academicStatus: '正常',
-  healthStatus: '良好',
-  medicalHistory: '',
-  allergyHistory: '',
-  contact: {
-    phone: '13800138000',
-    email: 'zhangsan@example.com',
-    emergencyContact: '张父',
-    emergencyRelation: '父亲'
-  },
-  tags: ['积极向上', '学习认真', '团队合作'],
-  assessmentRecords: [
-    {
-      id: 1,
-      title: '心理健康状况评估',
-      date: '2026-02-15',
-      score: 75,
-      level: 'normal'
-    },
-    {
-      id: 2,
-      title: '抑郁倾向测评',
-      date: '2026-01-20',
-      score: 85,
-      level: 'excellent'
-    }
-  ],
-  interviewRecords: [
-    {
-      id: 1,
-      title: '入学访谈',
-      date: '2024-09-15',
-      interviewer: '李老师',
-      duration: 30,
-      summary:
-        '了解新生适应情况、学业规划与宿舍生活，未发现明显心理风险，建议关注学期中段适应情况。'
-    }
-  ],
-  consultationRecords: [
-    {
-      id: 1,
-      date: '2026-02-10',
-      counselor: '王老师',
-      duration: 50,
-      method: '面对面',
-      summary: '针对近期压力与睡眠问题进行了初步评估，约定了后续跟进方式。'
-    }
-  ],
-  crisisRecords: [],
-  activityRecords: [
-    {
-      id: 1,
-      title: '心理健康讲座',
-      date: '2026-02-20',
-      status: '已参与',
-      location: '学术报告厅',
-      summary: '已参与并完成签到。'
-    },
-    {
-      id: 2,
-      title: '情绪管理工作坊',
-      date: '2026-01-15',
-      status: '已参与',
-      location: '心理健康中心活动室',
-      summary: '团体练习与分享，状态稳定。'
-    }
-  ],
-  referralRecords: [],
-  behaviorRecords: []
-}
 
 function normalizeProfile(raw) {
   if (!raw || typeof raw !== 'object') {
-    return { ...MOCK_PROFILE }
+    return {
+      name: '',
+      studentId: '',
+      gender: 1,
+      age: 0,
+      birthday: '',
+      nation: '',
+      college: '',
+      major: '',
+      class: '',
+      enrollmentDate: '',
+      academicStatus: '',
+      healthStatus: '',
+      medicalHistory: '',
+      allergyHistory: '',
+      contact: {
+        phone: '',
+        email: '',
+        emergencyContact: '',
+        emergencyRelation: ''
+      },
+      tags: [],
+      assessmentRecords: [],
+      interviewRecords: [],
+      consultationRecords: [],
+      crisisRecords: [],
+      activityRecords: [],
+      referralRecords: [],
+      behaviorRecords: []
+    }
   }
-  const baseContact = MOCK_PROFILE.contact
+  const baseContact = {
+    phone: '',
+    email: '',
+    emergencyContact: '',
+    emergencyRelation: ''
+  }
   const c = raw.contact
   const contact =
-    c && typeof c === 'object'
-      ? { ...baseContact, ...c }
-      : {
-          ...baseContact,
-          phone: typeof c === 'string' ? c : baseContact.phone
-        }
+      c && typeof c === 'object'
+          ? { ...baseContact, ...c }
+          : {
+            ...baseContact,
+            phone: typeof c === 'string' ? c : baseContact.phone
+          }
   return {
-    ...MOCK_PROFILE,
     ...raw,
     contact,
-    tags: Array.isArray(raw.tags) ? raw.tags : MOCK_PROFILE.tags,
+    tags: Array.isArray(raw.tags) ? raw.tags : [],
     assessmentRecords:
-      raw.assessmentRecords || raw.assessments || MOCK_PROFILE.assessmentRecords,
-    interviewRecords: raw.interviewRecords || MOCK_PROFILE.interviewRecords,
+        raw.assessmentRecords || raw.assessments || [],
+    interviewRecords: raw.interviewRecords || [],
     consultationRecords:
-      raw.consultationRecords || raw.consultations || MOCK_PROFILE.consultationRecords,
-    crisisRecords: raw.crisisRecords || MOCK_PROFILE.crisisRecords,
-    activityRecords: raw.activityRecords || raw.activities || MOCK_PROFILE.activityRecords,
-    referralRecords: raw.referralRecords || MOCK_PROFILE.referralRecords,
-    behaviorRecords: raw.behaviorRecords || MOCK_PROFILE.behaviorRecords
+        raw.consultationRecords || raw.consultations || [],
+    crisisRecords: raw.crisisRecords || [],
+    activityRecords: raw.activityRecords || raw.activities || [],
+    referralRecords: raw.referralRecords || [],
+    behaviorRecords: raw.behaviorRecords || []
   }
 }
 
@@ -594,16 +545,18 @@ const loadProfile = async () => {
     const studentId = localStorage.getItem('studentId') || ''
     if (studentId) {
       const res = await getProfileDetail({ studentId })
-      if (res?.code === 200 && res.data) {
+      if (isSuccess(res) && res.data) {
         profile.value = normalizeProfile(res.data)
         return
       }
     }
   } catch (e) {
-    console.warn('[profile] GET /api/profile/detail 不可用，使用演示数据', e)
+    console.error('[profile] GET /api/profile/detail 失败', e)
+    ElMessage.error('加载个人档案失败，请稍后重试')
   }
-  profile.value = normalizeProfile(null)
+  profile.value = normalizeProfile({})
 }
+
 
 const getLevelText = (level) => {
   const levelMap = {

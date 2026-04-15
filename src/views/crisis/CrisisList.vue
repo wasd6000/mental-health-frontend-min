@@ -369,19 +369,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { 
-  Plus, Search, Refresh, Download, ArrowDown, Right,
-  Warning, User, Document, TrendCharts, ArrowLeft 
-} from '@element-plus/icons-vue'
-import { getCrisisList, isApiSuccess } from '../../api/crisisApi'
-import { 
-  CRISIS_LEVELS, CRISIS_STATUS, CRISIS_TYPES,
-  getLevelConfig, getStatusConfig, getTypeConfig
-} from '../../types/crisis'
+import { ElMessage } from 'element-plus'
+import { getCrisisList } from '../../api/crisisApi'
 import { exportByApi } from '../../utils/exporter'
+
 
 const router = useRouter()
 
@@ -447,152 +440,35 @@ const UI_TYPE_TO_API = {
 const loadData = async () => {
   loading.value = true
   try {
-    const kw = filters.value.keyword?.trim()
-    const needClient =
-      !!(kw || filters.value.type || filters.value.dateRange?.length === 2)
     const params = {
-      page: needClient ? 1 : pagination.value.page,
-      pageSize: needClient ? 500 : pagination.value.pageSize,
-      level: filters.value.level || undefined,
-      status: filters.value.status || undefined,
-      college: kw || undefined,
+      page: pagination.value.page,
+      pageSize: pagination.value.pageSize,
+      keyword: filters.value.keyword,
+      level: filters.value.level,
+      status: filters.value.status,
+      type: filters.value.type,
+      startDate: filters.value.dateRange?.[0],
+      endDate: filters.value.dateRange?.[1],
     }
+
     const res = await getCrisisList(params)
-    if (isApiSuccess(res)) {
-      let list = res.data?.list || res.data?.records || []
-      const serverTotal = Number(res.data?.total) || list.length
-      if (kw) {
-        const k = kw.toLowerCase()
-        list = list.filter((row) => {
-          const name = row.studentInfo?.name?.toLowerCase() || ''
-          const sid = row.studentInfo?.studentId?.toLowerCase() || ''
-          const col = row.studentInfo?.college?.toLowerCase() || ''
-          const rid = String(row.reportId || row.caseNo || '').toLowerCase()
-          return (
-            name.includes(k) ||
-            sid.includes(k) ||
-            rid.includes(k) ||
-            col.includes(k)
-          )
-        })
-      }
-      if (filters.value.type) {
-        const code = UI_TYPE_TO_API[filters.value.type]
-        list = list.filter((row) => {
-          const rt = String(row.apiReportType || '').toUpperCase()
-          return !code || rt === code
-        })
-      }
-      if (filters.value.dateRange?.length === 2) {
-        const [a, b] = filters.value.dateRange
-        list = list.filter((row) => {
-          const t = row.reportTime || row.discoverTime
-          if (!t) return false
-          const d = String(t).slice(0, 10)
-          return d >= a && d <= b
-        })
-      }
-      const filteredTotal = list.length
-      if (needClient) {
-        pagination.value.total = filteredTotal
-        const start = (pagination.value.page - 1) * pagination.value.pageSize
-        crisisList.value = list.slice(start, start + pagination.value.pageSize)
-        overviewStats.value[0].value = filteredTotal
-        overviewStats.value[1].value = list.filter(
-          (c) => c.reportStatus !== 'closed',
-        ).length
-      } else {
-        pagination.value.total = serverTotal
-        crisisList.value = list
-      }
+    if (res.code === 200 && res.data) {
+      crisisList.value = res.data.list || []
+      pagination.value.total = res.data.total || 0
     } else {
-      ElMessage.error(res?.msg || '加载危机列表失败')
       crisisList.value = []
       pagination.value.total = 0
     }
   } catch (e) {
-    console.error(e)
-    ElMessage.error(e?.message || '加载失败')
+    console.error('加载危机案例列表失败:', e)
+    ElMessage.error('加载数据失败，请稍后重试')
     crisisList.value = []
     pagination.value.total = 0
+  } finally {
+    loading.value = false
   }
-  loading.value = false
 }
 
-const generateMockData = () => {
-  return [
-    {
-      id: '1',
-      caseNo: 'CR2024031501',
-      level: 'red',
-      status: 'intervening',
-      typeLabel: '自杀倾向',
-      studentInfo: { name: '张明华', studentId: '2022001001', college: '计算机学院', avatar: '' },
-      reporterName: '李辅导员',
-      reporterRole: '辅导员',
-      reportTime: '2024-03-15 08:30',
-      discoverTime: '2024-03-15 07:45',
-      discoverSource: '室友反映',
-      description: '学生近期情绪极度低落，有轻生念头，室友发现其手臂有自伤痕迹。',
-      initialMeasures: '已安排24小时陪护，通知家长',
-      emergencyContacts: [
-        { name: '张父', relation: '父亲', phone: '139****5678', isNotified: true }
-      ],
-      interventionTeam: [
-        { id: '1', name: '王心理', role: '心理咨询师', isLeader: true, phone: '138****1111' },
-        { id: '2', name: '李辅导员', role: '辅导员', isLeader: false, phone: '137****2222' }
-      ],
-      interventionRecords: [
-        { id: '1', typeLabel: '危机干预', content: '进行紧急心理危机干预...', result: '情绪有所缓解', createTime: '2024-03-15 10:00', operator: '王心理' }
-      ],
-      levelHistory: [
-        { id: '1', fromLevel: null, toLevel: 'red', reason: '初始评估为极高危', operator: '王心理', operatorRole: '咨询师', operateTime: '2024-03-15 09:00' }
-      ]
-    },
-    {
-      id: '2',
-      caseNo: 'CR2024031002',
-      level: 'orange',
-      status: 'tracking',
-      typeLabel: '严重抑郁',
-      studentInfo: { name: '李晓红', studentId: '2022001002', college: '文学院', avatar: '' },
-      reporterName: '班主任',
-      reporterRole: '班主任',
-      reportTime: '2024-03-10 14:20',
-      discoverTime: '2024-03-10 10:00',
-      discoverSource: '心理测评预警',
-      description: '心理测评结果显示重度抑郁，学生情绪持续低落。',
-      initialMeasures: '已联系家长，安排定期咨询',
-      emergencyContacts: [
-        { name: '李母', relation: '母亲', phone: '136****6789', isNotified: true }
-      ],
-      interventionTeam: [
-        { id: '3', name: '赵咨询师', role: '心理咨询师', isLeader: true, phone: '135****3333' }
-      ],
-      interventionRecords: [],
-      levelHistory: []
-    },
-    {
-      id: '3',
-      caseNo: 'CR2024030503',
-      level: 'yellow',
-      status: 'processing',
-      typeLabel: '严重焦虑',
-      studentInfo: { name: '王建国', studentId: '2022001003', college: '理学院', avatar: '' },
-      reporterName: '自主上报',
-      reporterRole: '学生',
-      reportTime: '2024-03-05 16:40',
-      discoverTime: '2024-03-05 16:40',
-      discoverSource: '自主求助',
-      description: '学业压力大，经常失眠，焦虑情绪明显。',
-      initialMeasures: '已预约心理咨询',
-      emergencyContacts: [],
-      interventionTeam: [],
-      interventionRecords: [],
-      levelHistory: []
-    }
-  ]
-}
 
 const handleSearch = () => {
   pagination.value.page = 1
