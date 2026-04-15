@@ -1,41 +1,91 @@
 <template>
   <div class="login-page">
-    <div class="back-btn" @click="goBack">
-      <el-icon><ArrowLeft /></el-icon>
-      <span>返回首页</span>
-    </div>
-    <div class="box">
-      <h2>管理端登录</h2>
+    <!-- 导航栏 -->
+    <PortalNavBar active-key="" />
 
-      <input v-model="form.username" placeholder="账号" />
-      <input v-model="form.password" type="password" placeholder="密码" />
-
-      <div v-if="captchaImg" class="captcha-row">
-        <input v-model="form.verificationCode" placeholder="图形验证码" />
-        <img :src="captchaImg" class="captcha-img" alt="" @click="loadCaptcha" title="刷新" />
+    <!-- 主内容区 -->
+    <div class="login-content">
+      <!-- 顶部学校信息 - 黑色背景 -->
+      <div class="school-header">
+        <h1 class="school-name">四川文理学院</h1>
+        <h2 class="school-english">Sichuan University of Arts and Science</h2>
+        <div class="platform-name">心理健康服务平台 - 管理端</div>
       </div>
 
-      <select v-model="form.role">
-        <option value="center">心理中心</option>
-        <option value="college">二级学院</option>
-        <option value="leader">校领导</option>
-        <option value="counselor">咨询师</option>
-        <option value="tutor">辅导员</option>
-        <option value="admin">管理员</option>
-      </select>
+      <!-- 登录卡片 -->
+      <div class="login-card">
+        <div class="card-header">
+          <h3>管理员登录</h3>
+          <p class="subtitle">请输入账号和密码登录系统</p>
+        </div>
 
-      <button @click="login">登录</button>
+        <div class="login-form">
+          <div class="form-group">
+            <label for="username">账号</label>
+            <input
+              id="username"
+              v-model="form.username"
+              placeholder="请输入管理员账号"
+              type="text"
+              class="form-input"
+              @keyup.enter="login"
+            />
+          </div>
 
-      <!-- 开发者快速登录通道 -->
-      <div class="dev-panel">
-        <div class="dev-title">开发者快速登录</div>
-        <div class="dev-buttons">
-          <button class="dev-btn tutor" @click="quickLogin('tutor')">辅导员</button>
-          <button class="dev-btn college" @click="quickLogin('college')">院系领导</button>
-          <button class="dev-btn leader" @click="quickLogin('leader')">校领导</button>
-          <button class="dev-btn center" @click="quickLogin('center')">心理中心</button>
-          <button class="dev-btn counselor" @click="quickLogin('counselor')">咨询师</button>
-          <button class="dev-btn admin" @click="quickLogin('admin')">管理员</button>
+          <div class="form-group">
+            <label for="password">密码</label>
+            <div class="password-input-wrapper">
+              <input
+                id="password"
+                v-model="form.password"
+                :type="showPassword ? 'text' : 'password'"
+                placeholder="请输入密码"
+                class="form-input"
+                @keyup.enter="login"
+              />
+              <button
+                class="toggle-password"
+                @click="showPassword = !showPassword"
+                type="button"
+              >
+                {{ showPassword ? '隐藏' : '显示' }}
+              </button>
+            </div>
+          </div>
+
+          <div v-if="captchaImg" class="form-group captcha-row">
+            <label for="captcha-input">图形验证码</label>
+            <div class="captcha-line">
+              <input
+                id="captcha-input"
+                v-model="form.verificationCode"
+                type="text"
+                class="form-input captcha-input"
+                placeholder="请输入验证码"
+                autocomplete="off"
+                @keyup.enter="login"
+              />
+              <img
+                :src="captchaImg"
+                class="captcha-img"
+                alt="验证码"
+                @click="loadCaptcha"
+                title="点击刷新"
+              />
+            </div>
+          </div>
+
+          <button
+            class="login-btn"
+            @click="login"
+            :disabled="!form.username || !form.password || loading"
+          >
+            {{ loading ? '登录中...' : '登录' }}
+          </button>
+
+          <div class="login-tips">
+            <p>💡 提示：登录后系统将根据您的账号自动识别角色权限</p>
+          </div>
         </div>
       </div>
     </div>
@@ -46,24 +96,20 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { adminLogin } from '../../api/mock'
+import PortalNavBar from '@/components/portal/PortalNavBar.vue'
 import { login as apiLogin, fetchVerificationCode, validateToken } from '../../api/auth'
 import { setAuthToken, getStoredAccessToken } from '../../api/request'
-import { ArrowLeft } from '@element-plus/icons-vue'
 
 const router = useRouter()
-
-const goBack = () => {
-  router.push('/')
-}
 
 const form = ref({
   username: '',
   password: '',
-  verificationCode: '',
-  role: 'center'
+  verificationCode: ''
 })
 
+const showPassword = ref(false)
+const loading = ref(false)
 const captchaImg = ref('')
 const captchaKey = ref('')
 
@@ -84,15 +130,14 @@ const loadCaptcha = async () => {
 onMounted(async () => {
   loadCaptcha()
 
+  // 检查是否已登录
   const autoLoginSuccess = await checkAutoLogin()
-
   if (!autoLoginSuccess) {
     try {
       localStorage.removeItem('admin_token')
       localStorage.removeItem('admin_role')
       localStorage.removeItem('auth_token')
       localStorage.removeItem('access_token')
-      console.log('[AutoLogin] 自动登录失败，已清除无效 Token')
     } catch (_) {
     }
   }
@@ -102,18 +147,13 @@ async function checkAutoLogin() {
   const token = getStoredAccessToken()
 
   if (!token) {
-    console.log('[AutoLogin] 无可用 Token，等待用户手动登录')
     return false
   }
-
-  console.log('[AutoLogin] 检测到 Token，开始验证...')
 
   try {
     const isValid = await validateToken()
 
     if (isValid) {
-      console.log('[AutoLogin] Token 验证通过，自动登录')
-
       localStorage.setItem('access_token', token)
       localStorage.setItem('admin_token', token)
 
@@ -129,10 +169,9 @@ async function checkAutoLogin() {
       if (userName) localStorage.setItem('user_name', userName)
 
       ElMessage.success('自动登录成功')
-      router.push('/admin')
+      router.push('/admin/workbench')
       return true
     } else {
-      console.log('[AutoLogin] Token 已失效，请重新登录')
       ElMessage.warning('登录已过期，请重新登录')
       return false
     }
@@ -142,152 +181,125 @@ async function checkAutoLogin() {
   }
 }
 
-const ROLE_MAP = {
-  center: '心理中心',
-  counselor: '咨询师',
-  tutor: '辅导员',
-  leader: '校领导',
-  college: '二级学院',
-  admin: '管理员'
-}
-
-
 const login = async () => {
+  if (!form.value.username || !form.value.password) {
+    ElMessage.warning('请输入账号和密码')
+    return
+  }
+
+  // 如果启用了验证码，必须填写
+  if (captchaImg.value && !form.value.verificationCode) {
+    ElMessage.warning('请输入图形验证码')
+    return
+  }
+
+  loading.value = true
   try {
-    let res
-    try {
-      const payload = {
-        username: form.value.username,
-        password: form.value.password,
-        role: form.value.role,
+    const payload = {
+      username: form.value.username,
+      password: form.value.password,
+      role: 'admin', // 管理端统一使用admin角色，后端会从JWT解析实际角色
+    }
+
+    if (captchaImg.value) {
+      payload.verificationCode = form.value.verificationCode
+      payload.captchaKey = captchaKey.value
+    }
+
+    const apiRes = await apiLogin(payload)
+
+    if (apiRes?.code === 200 && apiRes.data) {
+      const d = apiRes.data
+
+      // 检查是否有错误信息
+      const errMsg = d?.['false']
+      if (typeof errMsg === 'string' && errMsg) {
+        throw new Error(errMsg)
       }
-      if (captchaImg.value) {
-        payload.verificationCode = form.value.verificationCode
-        payload.captchaKey = captchaKey.value
+
+      // 提取JWT Token
+      const token =
+        d?.token ||
+        d?.accessToken ||
+        Object.values(d || {}).find(
+          (v) => typeof v === 'string' && v.includes('.'),
+        )
+
+      if (!token || typeof token !== 'string') {
+        throw new Error(apiRes?.msg || '登录失败')
       }
-      const apiRes = await apiLogin(payload)
-      if (apiRes?.code === 200 && apiRes.data) {
-        const d = apiRes.data
-        // psychological_platform 的登录返回值：{ "<role_name>": "<jwt>" } 或 { "false": "原因" }
-        const errMsg = d?.['false']
-        if (typeof errMsg === 'string' && errMsg) {
-          throw new Error(errMsg)
+
+      // 保存Token
+      setAuthToken(token)
+      localStorage.setItem('access_token', token)
+      localStorage.setItem('admin_token', token)
+
+      // 从 JWT token 中解析用户信息和角色
+      try {
+        const { getJwtSubject, getJwtRoleCode } = await import('../../utils/jwtPayload.js')
+        const sub = getJwtSubject(token)
+        const roleCode = getJwtRoleCode(token)
+
+        // 存储 userId（JWT subject）
+        if (sub) {
+          localStorage.setItem('user_id', sub)
         }
 
-        const token =
-          d?.token ||
-          d?.accessToken ||
-          Object.values(d || {}).find(
-            (v) => typeof v === 'string' && v.includes('.'),
-          )
-
-        if (!token || typeof token !== 'string') {
-          throw new Error(apiRes?.msg || '登录失败')
-        }
-
-        setAuthToken(token)
-        localStorage.setItem('access_token', token)
-        localStorage.setItem('admin_token', token)
-
-        // 从 JWT token 中解析用户信息和角色
-        try {
-          const { getJwtSubject, getJwtRoleCode } = await import('../../utils/jwtPayload.js')
-          const sub = getJwtSubject(token)
-          const roleCode = getJwtRoleCode(token)
-
-          // 存储 userId（JWT subject）
-          if (sub) {
-            localStorage.setItem('user_id', sub)
-          }
-
-          // 关键：使用 JWT 中的 role_code 作为用户角色（转换为小写）
-          if (roleCode) {
-            const normalizedRole = roleCode.toLowerCase()
-            localStorage.setItem('user_role', normalizedRole)
-            localStorage.setItem('admin_role', normalizedRole)
-            console.log('[AdminLogin] 从 JWT 解析到角色:', roleCode, '->', normalizedRole)
-          } else {
-            // 降级：如果 JWT 中没有 role_code，使用页面选择的 role
-            const role = String(form.value.role || '').toLowerCase()
-            localStorage.setItem('user_role', role)
-            localStorage.setItem('admin_role', role)
-            console.warn('[AdminLogin] JWT 中未找到 role_code，使用前端选择:', role)
-          }
-        } catch (e) {
-          console.error('[AdminLogin] 解析 JWT 失败:', e)
+        // 关键：使用 JWT 中的 role_code 作为用户角色（转换为小写）
+        if (roleCode) {
+          const normalizedRole = roleCode.toLowerCase()
+          localStorage.setItem('user_role', normalizedRole)
+          localStorage.setItem('admin_role', normalizedRole)
+          console.log('[AdminLogin] 从 JWT 解析到角色:', roleCode, '->', normalizedRole)
+        } else {
           // 降级处理
-          const role = String(form.value.role || '').toLowerCase()
-          localStorage.setItem('user_role', role)
-          localStorage.setItem('admin_role', role)
+          localStorage.setItem('user_role', 'admin')
+          localStorage.setItem('admin_role', 'admin')
+          console.warn('[AdminLogin] JWT 中未找到 role_code，使用默认 admin')
         }
-        localStorage.setItem('user_name', form.value.username)
-
-        ElMessage.success('登录成功')
-        router.push('/admin')
-        return
+      } catch (e) {
+        console.error('[AdminLogin] 解析 JWT 失败:', e)
+        localStorage.setItem('user_role', 'admin')
+        localStorage.setItem('admin_role', 'admin')
       }
-    } catch (_) {
-      loadCaptcha()
+
+      localStorage.setItem('user_name', form.value.username)
+
+      ElMessage.success('登录成功')
+
+      // 根据角色跳转到对应的工作台
+      const role = localStorage.getItem('admin_role') || 'admin'
+      const roleRoutes = {
+        admin: '/admin/workbench',
+        center: '/admin/center-statistics',
+        counselor: '/admin/counselor-work',
+        tutor: '/admin/tutor-workbench',
+        instructor: '/admin/tutor-workbench',
+        college: '/admin/college-workbench',
+        college_leader: '/admin/college-workbench',
+        leader: '/admin/leader-workbench',
+        school_leader: '/admin/leader-workbench',
+      }
+
+      const redirectPath = roleRoutes[role] || '/admin/workbench'
+      router.push(redirectPath)
+    } else {
+      throw new Error(apiRes?.msg || '登录失败')
     }
-
-
-    res = await adminLogin(form.value)
-    console.log('接口原始返回 res = ', res)
-
-    const user = res.data
-    console.log('res.data = ', user)
-    if (!user) {
-      ElMessage.warning('账号或密码错误')
-      return
-    }
-
-    // 保存登录信息
-    localStorage.setItem('user_id', user.id)
-    localStorage.setItem('user_token', user.username)
-    localStorage.setItem('user_role', user.role)
-    localStorage.setItem('user_name', user.name)
-
-    console.log('存进去后的 user_id =', localStorage.getItem('user_id'))
-    console.log('存进去后的 user_name =', localStorage.getItem('user_name'))
-    localStorage.setItem('admin_token', user.role + Date.now())
-    localStorage.setItem('admin_role', user.role)
-
-    ElMessage.success('登录成功')
-    router.push('/admin')
-
   } catch (err) {
-    ElMessage.error(err.message || '登录失败')
+    console.error('登录失败:', err)
+    ElMessage.error(err.message || '登录失败，请检查账号密码')
+    // 刷新验证码
+    await loadCaptcha()
+  } finally {
+    loading.value = false
   }
-}
-
-const quickLogin = (role) => {
-  const roleNames = {
-    tutor: '辅导员',
-    college: '院系领导',
-    leader: '校领导',
-    center: '心理中心',
-    counselor: '咨询师',
-    admin: '管理员'
-  }
-  
-  localStorage.setItem('user_id', `dev_${role}_001`)
-  localStorage.setItem('user_token', `dev_${role}`)
-  localStorage.setItem('user_role', role)
-  localStorage.setItem('user_name', `测试${roleNames[role]}`)
-  localStorage.setItem('admin_token', role + Date.now())
-  localStorage.setItem('admin_role', role)
-
-  console.log(`[DEV] 快速登录: ${roleNames[role]}`)
-  router.push('/admin')
 }
 </script>
 
 <style scoped>
 .login-page {
   min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   background-image: url('/albackground.png');
   background-size: cover;
   background-position: center;
@@ -295,246 +307,304 @@ const quickLogin = (role) => {
   position: relative;
 }
 
-.back-btn {
-  position: absolute;
-  top: 20px;
-  left: 20px;
+.login-content {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  color: #1a365d;
-  font-size: 14px;
-  font-weight: 500;
-  z-index: 100;
+  justify-content: center;
+  padding: 80px 20px 40px;
+  min-height: calc(100vh - 56px);
 }
 
-.back-btn:hover {
-  background: #fff;
-  transform: translateX(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.back-btn .el-icon {
-  font-size: 16px;
-}
-
-.box {
-  width: 380px;
-  background: white;
-  padding: 25px 20px;
-  border-radius: 4px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-  position: relative;
-  z-index: 1;
-}
-
-.box h2 {
+/* 顶部学校信息 - 黑色背景 */
+.school-header {
   text-align: center;
   color: white;
-  background: #1a365d;
-  padding: 15px;
-  margin: -25px -20px 20px;
-  font-size: 16px;
-  font-weight: bold;
-  font-family: 'SimSun', serif;
-  border-bottom: 2px solid #2c5282;
+  margin-bottom: 40px;
+  padding: 40px 60px;
+  background: rgba(0, 0, 0, 0.75);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  max-width: 800px;
+  width: 100%;
 }
 
-input, select {
-  width: 100%;
-  margin-bottom: 15px;
-  padding: 8px 10px;
-  border: 1px solid #ccc;
-  border-radius: 2px;
-  font-size: 13px;
+.school-name {
+  margin: 0 0 12px 0;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.school-english {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 400;
+  opacity: 0.95;
+  letter-spacing: 1.5px;
+}
+
+.platform-name {
+  font-size: 20px;
+  font-weight: 600;
+  padding: 10px 28px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  backdrop-filter: blur(10px);
+  display: inline-block;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* 登录卡片 */
+.login-card {
+  width: 480px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
   transition: all 0.3s ease;
-  background: #f9f9f9;
+}
+
+.login-card:hover {
+  box-shadow: 0 16px 56px rgba(0, 0, 0, 0.25);
+  transform: translateY(-4px);
+}
+
+.card-header {
+  background: linear-gradient(135deg, #a51c30 0%, #c9263e 100%);
+  padding: 36px 24px;
+  text-align: center;
+  color: white;
+}
+
+.card-header h3 {
+  margin: 0 0 8px 0;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.login-form {
+  padding: 36px 32px;
+}
+
+.form-group {
+  margin-bottom: 24px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.form-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 15px;
+  transition: all 0.3s ease;
+  background: #f9fafb;
   box-sizing: border-box;
 }
 
-input:focus, select:focus {
+.form-input:focus {
   outline: none;
-  border-color: #1a365d;
-  box-shadow: 0 0 0 2px rgba(26, 54, 93, 0.1);
+  border-color: #1a1a1a;
+  box-shadow: 0 0 0 4px rgba(26, 26, 26, 0.1);
   background: white;
 }
 
-input:hover, select:hover {
-  border-color: #1a365d;
+.form-input:hover:not(:focus) {
+  border-color: #d1d5db;
 }
 
-select {
+.password-input-wrapper {
+  position: relative;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #6b7280;
   cursor: pointer;
-  appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, #1a365d 50%),
-    linear-gradient(135deg, #1a365d 50%, transparent 50%);
-  background-position: calc(100% - 15px) calc(1em + 1px),
-    calc(100% - 10px) calc(1em + 1px);
-  background-size: 4px 4px, 4px 4px;
-  background-repeat: no-repeat;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  font-weight: 500;
 }
 
-button {
+.toggle-password:hover {
+  background: #f3f4f6;
+  color: #1a1a1a;
+}
+
+.captcha-row .captcha-line {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.captcha-input {
+  flex: 1;
+}
+
+.captcha-img {
+  width: 130px;
+  height: 50px;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 2px solid #e5e7eb;
+  transition: all 0.2s;
+  object-fit: cover;
+}
+
+.captcha-img:hover {
+  border-color: #1a1a1a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: scale(1.02);
+}
+
+.login-btn {
   width: 100%;
-  padding: 10px;
-  background: #1a365d;
+  padding: 16px;
+  background: linear-gradient(135deg, #a51c30 0%, #c9263e 100%);
   color: white;
   border: none;
-  border-radius: 2px;
-  font-size: 14px;
-  font-weight: bold;
+  border-radius: 10px;
+  font-size: 17px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  margin-top: 10px;
-  box-shadow: 0 2px 8px rgba(26, 54, 93, 0.3);
+  margin-top: 12px;
+  box-shadow: 0 4px 16px rgba(165, 28, 48, 0.3);
+  letter-spacing: 1px;
 }
 
-button:hover {
-  background: #2c5282;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(26, 54, 93, 0.4);
+.login-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(165, 28, 48, 0.4);
+  background: linear-gradient(135deg, #c9263e 0%, #a51c30 100%);
 }
 
-button:active {
+.login-btn:active:not(:disabled) {
   transform: translateY(0);
 }
 
-/* 开发者快速登录面板 */
-.dev-panel {
+.login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.login-tips {
   margin-top: 20px;
-  padding-top: 15px;
-  border-top: 1px dashed #ddd;
+  padding: 16px;
+  background: #f0f9ff;
+  border-left: 4px solid #3b82f6;
+  border-radius: 8px;
 }
 
-.dev-title {
-  font-size: 12px;
-  color: #888;
-  text-align: center;
-  margin-bottom: 10px;
-}
-
-.dev-buttons {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.dev-btn {
-  padding: 8px 4px;
-  font-size: 12px;
-  border-radius: 4px;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-weight: normal;
-  box-shadow: none;
-  margin-top: 0;
-}
-
-.dev-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-}
-
-.dev-btn.tutor {
-  background: #10b981;
-  color: white;
-}
-
-.dev-btn.college {
-  background: #8b5cf6;
-  color: white;
-}
-
-.dev-btn.leader {
-  background: #ef4444;
-  color: white;
-}
-
-.dev-btn.center {
-  background: #3b82f6;
-  color: white;
-}
-
-.dev-btn.counselor {
-  background: #f59e0b;
-  color: white;
-}
-
-.dev-btn.admin {
-  background: #6366f1;
-  color: white;
-}
-
-/* 底部信息 */
-.footer {
-  margin-top: 15px;
-  text-align: center;
-  padding-top: 10px;
-  border-top: 1px solid #eee;
-}
-
-.footer p {
-  color: #666;
-  font-size: 11px;
+.login-tips p {
   margin: 0;
-}
-
-/* 导航按钮 */
-.nav-buttons {
-  position: absolute;
-  top: 50%;
-  left: 20px;
-  right: 20px;
-  transform: translateY(-50%);
-  display: flex;
-  justify-content: space-between;
-  z-index: 10;
-}
-
-.nav-btn {
-  width: 40px;
-  height: 40px;
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.3);
-  color: white;
-  font-size: 20px;
-  font-weight: bold;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-}
-
-.nav-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: white;
+  font-size: 13px;
+  color: #1e40af;
+  line-height: 1.6;
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .box {
-    width: 90%;
-    max-width: 360px;
+  .school-header {
+    padding: 30px 24px;
+    margin-bottom: 30px;
   }
-  
-  .nav-buttons {
-    left: 10px;
-    right: 10px;
+
+  .school-name {
+    font-size: 28px;
+    letter-spacing: 2px;
   }
-  
-  .nav-btn {
-    width: 36px;
-    height: 36px;
-    font-size: 18px;
+
+  .school-english {
+    font-size: 15px;
+  }
+
+  .platform-name {
+    font-size: 17px;
+    padding: 8px 20px;
+  }
+
+  .login-card {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .card-header {
+    padding: 28px 20px;
+  }
+
+  .card-header h3 {
+    font-size: 22px;
+  }
+
+  .login-form {
+    padding: 28px 24px;
+  }
+
+  .captcha-img {
+    width: 110px;
+    height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-content {
+    padding: 70px 16px 30px;
+  }
+
+  .school-header {
+    padding: 24px 20px;
+  }
+
+  .school-name {
+    font-size: 24px;
+  }
+
+  .school-english {
+    font-size: 13px;
+  }
+
+  .platform-name {
+    font-size: 15px;
+  }
+
+  .login-card {
+    max-width: 100%;
+  }
+
+  .captcha-row .captcha-line {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .captcha-img {
+    width: 100%;
+    height: 50px;
   }
 }
 </style>

@@ -1,182 +1,155 @@
 <template>
   <div class="login-page">
-    <div class="back-btn" @click="goBack">
-      <el-icon><ArrowLeft /></el-icon>
-      <span>返回首页</span>
-    </div>
-    <!-- 顶部学校信息 -->
-    <div class="school-header">
-      <h1 class="school-name">四川文理学院</h1>
-      <h2 class="school-english">Sichuan University of Arts and Science</h2>
-      <div class="platform-name">心理健康服务</div>
-    </div>
+    <!-- 导航栏 - 蓝色主题 -->
+    <PortalNavBar active-key="" theme="blue" />
 
-    <!-- 登录卡片 -->
-    <div class="login-card">
-      <div class="card-header">
-        <h3>欢迎使用心理健康服务平台</h3>
-        <p class="subtitle">请选择身份登录</p>
+    <!-- 主内容区 -->
+    <div class="login-content">
+      <!-- 顶部学校信息 -->
+      <div class="school-header">
+        <h1 class="school-name">四川文理学院</h1>
+        <h2 class="school-english">Sichuan University of Arts and Science</h2>
+        <div class="platform-name">心理健康服务平台 - 用户端</div>
       </div>
 
-      <!-- 身份选择 -->
-      <div class="identity-select">
-        <div
-          class="identity-option"
-          :class="{ 'active': identity === 'student' }"
-          @click="identity = 'student'"
-        >
-          <div class="identity-text">
-            <div class="identity-title">学生</div>
-            <div class="identity-desc">在校学生</div>
-          </div>
-        </div>
-        <div
-          class="identity-option"
-          :class="{ 'active': identity === 'parent' }"
-          @click="identity = 'parent'"
-        >
-          <div class="identity-text">
-            <div class="identity-title">家长</div>
-            <div class="identity-desc">学生家长</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 登录表单 -->
-      <div class="login-form">
-        <div class="form-group">
-          <label for="username">
-            <span v-if="identity === 'student'">学号</span>
-            <span v-else>手机号</span>
-          </label>
-          <input
-            id="username"
-            v-model="form.username"
-            :placeholder="identity === 'student' ? '请输入学号' : '请输入手机号'"
-            type="text"
-            class="form-input"
-          />
+      <!-- 登录卡片 -->
+      <div class="login-card">
+        <div class="card-header">
+          <h3>欢迎使用心理健康服务平台</h3>
+          <p class="subtitle">请选择身份登录</p>
         </div>
 
-        <div class="form-group">
-          <label for="password">
-            密码
-          </label>
-          <div class="password-input-wrapper">
-            <input
-              id="password"
-              v-model="form.password"
-              :type="showPassword ? 'text' : 'password'"
-              placeholder="请输入密码"
-              class="form-input"
-            />
-            <button
-              class="toggle-password"
-              @click="showPassword = !showPassword"
-              type="button"
-            >
-              {{ showPassword ? '显示' : '隐藏' }}
-            </button>
-          </div>
-        </div>
-
-        <div class="form-group captcha-row">
-          <label for="captcha-input">图形验证码</label>
-          <div class="captcha-line">
-            <input
-              id="captcha-input"
-              v-model="form.verificationCode"
-              type="text"
-              class="form-input captcha-input"
-              placeholder="请输入图形验证码"
-              autocomplete="off"
-              :disabled="captchaLoading"
-            />
-            <img
-              v-if="captchaImg"
-              :src="captchaImg"
-              class="captcha-img"
-              alt="验证码"
-              @click="loadCaptcha"
-              title="点击刷新"
-            />
-            <button
-              v-else
-              type="button"
-              class="captcha-reload-btn"
-              :disabled="captchaLoading"
-              @click="loadCaptcha"
-            >
-              {{ captchaLoading ? '加载中…' : captchaLoadError ? '重新加载验证码' : '加载验证码' }}
-            </button>
-          </div>
-          <p v-if="captchaLoadError" class="captcha-hint">{{ captchaLoadError }}</p>
-        </div>
-
-        <!-- 登录按钮 -->
-        <button
-          class="login-btn"
-          @click="login"
-          :disabled="!form.username || !form.password"
-        >
-          登录
-        </button>
-
-        <!-- 底部链接 -->
-        <div class="form-footer">
-          <button
-            class="footer-link forgot-password-btn"
-            @click="showForgotPasswordModal = true"
+        <!-- 身份选择 -->
+        <div class="identity-select">
+          <div
+              class="identity-option"
+              :class="{ 'active': identity === 'student' }"
+              @click="identity = 'student'"
           >
-            忘记密码？
-          </button>
-          <button
-            class="footer-link register-btn"
-            @click="showRegisterModal = true"
+            <div class="identity-text">
+              <div class="identity-title">学生</div>
+              <div class="identity-desc">在校学生</div>
+            </div>
+          </div>
+          <div
+              class="identity-option"
+              :class="{ 'active': identity === 'parent' }"
+              @click="identity = 'parent'"
           >
-            立即注册
+            <div class="identity-text">
+              <div class="identity-title">家长</div>
+              <div class="identity-desc">学生家长</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 登录表单 -->
+        <div class="login-form">
+          <div class="form-group">
+            <label for="username">
+              <span v-if="identity === 'student'">学号</span>
+              <span v-else>手机号</span>
+            </label>
+            <input
+                id="username"
+                v-model="form.username"
+                :placeholder="identity === 'student' ? '请输入学号' : '请输入手机号'"
+                type="text"
+                class="form-input"
+                @keyup.enter="login"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="password">
+              密码
+            </label>
+            <div class="password-input-wrapper">
+              <input
+                  id="password"
+                  v-model="form.password"
+                  :type="showPassword ? 'text' : 'password'"
+                  placeholder="请输入密码"
+                  class="form-input"
+                  @keyup.enter="login"
+              />
+              <button
+                  class="toggle-password"
+                  @click="showPassword = !showPassword"
+                  type="button"
+              >
+                {{ showPassword ? '显示' : '隐藏' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group captcha-row">
+            <label for="captcha-input">图形验证码</label>
+            <div class="captcha-line">
+              <input
+                  id="captcha-input"
+                  v-model="form.verificationCode"
+                  type="text"
+                  class="form-input captcha-input"
+                  placeholder="请输入图形验证码"
+                  autocomplete="off"
+                  :disabled="captchaLoading"
+                  @keyup.enter="login"
+              />
+              <img
+                  v-if="captchaImg"
+                  :src="captchaImg"
+                  class="captcha-img"
+                  alt="验证码"
+                  @click="loadCaptcha"
+                  title="点击刷新"
+              />
+              <button
+                  v-else
+                  type="button"
+                  class="captcha-reload-btn"
+                  :disabled="captchaLoading"
+                  @click="loadCaptcha"
+              >
+                {{ captchaLoading ? '加载中…' : captchaLoadError ? '重新加载验证码' : '加载验证码' }}
+              </button>
+            </div>
+            <p v-if="captchaLoadError" class="captcha-hint">{{ captchaLoadError }}</p>
+          </div>
+
+          <!-- 登录按钮 -->
+          <button
+              class="login-btn"
+              @click="login"
+              :disabled="!form.username || !form.password || loading"
+          >
+            {{ loading ? '登录中...' : '登录' }}
           </button>
-        </div>
 
-        <div v-if="casLoginUrl" class="cas-block">
-          <div class="cas-divider">或</div>
-          <button type="button" class="cas-btn" @click="goCasLogin">
-            统一身份认证（CAS）登录
-          </button>
-          <p class="cas-hint">
-            规划与学校统一身份对接；配置环境变量 VITE_CAS_LOGIN_URL 后启用，换票与 Token 由后端完成。
-          </p>
-        </div>
-
-        <!-- 开发者快速登录入口 -->
-        <div class="dev-entry" @click="handleDevClick">
-          <span class="dev-text">DEV</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 开发者快速登录弹窗 -->
-    <div v-if="showDevModal" class="modal-overlay" @click.self="showDevModal = false">
-      <div class="modal-content dev-modal">
-        <div class="modal-header">
-          <h3>🔧 开发者快速登录</h3>
-          <button class="close-btn" @click="showDevModal = false">×</button>
-        </div>
-        <div class="modal-body">
-          <p class="dev-tip">选择角色快速登录（仅限开发测试使用）</p>
-          <div class="dev-role-list">
-            <button 
-              v-for="role in devRoles" 
-              :key="role.key"
-              class="dev-role-btn"
-              @click="devQuickLogin(role)"
+          <!-- 底部链接 -->
+          <div class="form-footer">
+            <button
+                class="footer-link forgot-password-btn"
+                @click="showForgotPasswordModal = true"
             >
-              <span class="role-icon">{{ role.icon }}</span>
-              <span class="role-info">
-                <span class="role-name">{{ role.name }}</span>
-                <span class="role-desc">{{ role.desc }}</span>
-              </span>
+              忘记密码？
             </button>
+            <button
+                class="footer-link register-btn"
+                @click="showRegisterModal = true"
+            >
+              立即注册
+            </button>
+          </div>
+
+          <div v-if="casLoginUrl" class="cas-block">
+            <div class="cas-divider">或</div>
+            <button type="button" class="cas-btn" @click="goCasLogin">
+              统一身份认证（CAS）登录
+            </button>
+            <p class="cas-hint">
+              规划与学校统一身份对接；配置环境变量 VITE_CAS_LOGIN_URL 后启用，换票与 Token 由后端完成。
+            </p>
           </div>
         </div>
       </div>
@@ -365,6 +338,8 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import PortalNavBar from '@/components/portal/PortalNavBar.vue'
 import { adminLogin } from '../../api/mock'
 import { login as apiLogin, fetchVerificationCode, sendRegisterSms, registerAccount } from '@/api/auth'
 import { setAuthToken } from '@/api/request'
@@ -373,6 +348,8 @@ import { sendVerificationCode, getCooldownRemainingSeconds, verifyCode } from '@
 import { clearStaffSessionKeys } from '@/utils/portalSession.js'
 
 const router = useRouter()
+
+const loading = ref(false)
 
 const goBack = () => {
   router.push('/')
@@ -689,55 +666,27 @@ const TEST_ACCOUNTS = {
   }
 }
 
-// 开发者快速登录相关
-const showDevModal = ref(false)
-
-const devRoles = [
-  { key: 'student', name: '学生', desc: '学生端功能测试', icon: '🎓', path: '/student/dashboard' },
-  { key: 'parent', name: '家长', desc: '家长端功能测试', icon: '👨‍👩‍👧', path: '/parent/dashboard' }
-]
-
-const handleDevClick = () => {
-  showDevModal.value = true
-}
-
-const devQuickLogin = (role) => {
-  clearStaffSessionKeys()
-  localStorage.setItem('studentId', `dev_${role.key}`)
-  localStorage.setItem('User_token', `${role.key}_dev_${Date.now()}`)
-  localStorage.setItem('User_role', role.key)
-  localStorage.setItem('User_name', `开发者(${role.name})`)
-  localStorage.setItem('isDev', 'true')
-  
-  showDevModal.value = false
-  router.push(role.path)
-}
-
 const login = async () => {
   if (!form.username || !form.password) {
-    alert('请输入账号和密码')
+    ElMessage.warning('请输入账号和密码')
     return
   }
 
   const role = identity.value === 'student' ? 'student' : 'parent'
 
-  console.log('登录参数：', {
-  username: form.username,
-  password: form.password,
-  role
-})
-
   try {
     // 后端强制要求验证码校验：key（请求头）+ verificationCode（参数）
-    if (!captchaKey.value) {
+    if (captchaImg.value && !captchaKey.value) {
       await loadCaptcha()
-      alert('请先获取图形验证码')
+      ElMessage.warning('请先获取图形验证码')
       return
     }
-    if (!form.verificationCode) {
-      alert('请输入图形验证码')
+    if (captchaImg.value && !form.verificationCode) {
+      ElMessage.warning('请输入图形验证码')
       return
     }
+
+    loading.value = true
 
     const payload = {
       username: form.username,
@@ -758,11 +707,11 @@ const login = async () => {
       }
 
       const token =
-        d?.token ||
-        d?.accessToken ||
-        Object.values(d || {}).find(
-          (v) => typeof v === 'string' && v.includes('.'),
-        )
+          d?.token ||
+          d?.accessToken ||
+          Object.values(d || {}).find(
+              (v) => typeof v === 'string' && v.includes('.'),
+          )
 
       if (!token || typeof token !== 'string' || !token.includes('.')) {
         throw new Error(apiRes?.msg || '登录失败')
@@ -771,7 +720,9 @@ const login = async () => {
       clearStaffSessionKeys()
       setAuthToken(token)
       localStorage.setItem('access_token', token)
-      localStorage.setItem('User_token', token)// 从 JWT token 中解析用户信息
+      localStorage.setItem('User_token', token)
+
+      // 从 JWT token 中解析用户信息
       try {
         const { getJwtSubject, getJwtRoleCode } = await import('../../utils/jwtPayload.js')
         const sub = getJwtSubject(token)
@@ -802,6 +753,8 @@ const login = async () => {
       localStorage.setItem('studentId', form.username)
       localStorage.setItem('User_name', form.username)
 
+      ElMessage.success('登录成功')
+
       const redirectPath =
           router.currentRoute.value.query.redirect ||
           (role === 'parent' ? '/parent/dashboard' : '/student/dashboard')
@@ -813,8 +766,10 @@ const login = async () => {
   } catch (e) {
     console.log('接口登录失败:', e)
     await loadCaptcha()
-    alert(e?.message || '登录失败')
+    ElMessage.error(e?.message || '登录失败')
     return
+  } finally {
+    loading.value = false
   }
 
   // ========================
@@ -828,7 +783,7 @@ const login = async () => {
 
     })
 
-    
+
     const user = res.data
 
     clearStaffSessionKeys()
@@ -842,8 +797,8 @@ const login = async () => {
     localStorage.setItem('User_name', user.name || user.username)
 
     const redirectPath =
-      router.currentRoute.value.query.redirect ||
-      (role === 'parent' ? '/parent/dashboard' : '/student/dashboard')
+        router.currentRoute.value.query.redirect ||
+        (role === 'parent' ? '/parent/dashboard' : '/student/dashboard')
 
     console.log('登录成功，跳转到:', redirectPath)
     await router.push(redirectPath)
@@ -866,8 +821,8 @@ const login = async () => {
     localStorage.setItem('User_name', testAccount.username)
 
     const redirectPath =
-      router.currentRoute.value.query.redirect ||
-      (role === 'parent' ? '/parent/dashboard' : '/student/dashboard')
+        router.currentRoute.value.query.redirect ||
+        (role === 'parent' ? '/parent/dashboard' : '/student/dashboard')
 
     console.log('测试账号登录成功，跳转到:', redirectPath)
     await router.push(redirectPath)
@@ -879,16 +834,16 @@ const login = async () => {
   // ========================
   const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
   const user = users.find(
-    u => u.username === form.username && u.role === role
+      u => u.username === form.username && u.role === role
   )
 
   if (!user) {
-    alert('账号未注册，请先注册')
+    ElMessage.warning('账号未注册，请先注册')
     return
   }
 
   if (user.password !== form.password) {
-    alert('密码错误')
+    ElMessage.error('密码错误')
     return
   }
 
@@ -904,8 +859,8 @@ const login = async () => {
   localStorage.setItem('User_name', user.real_name || user.username)
 
   const redirectPath =
-    router.currentRoute.value.query.redirect ||
-    (role === 'parent' ? '/parent/dashboard' : '/student/dashboard')
+      router.currentRoute.value.query.redirect ||
+      (role === 'parent' ? '/parent/dashboard' : '/student/dashboard')
 
   console.log('本地用户登录成功，跳转到:', redirectPath)
   await router.push(redirectPath)
@@ -915,84 +870,64 @@ const login = async () => {
 <style scoped>
 .login-page {
   min-height: 100vh;
-  /* 图片背景 - 请将图片放在public目录下，并更新路径 */
-  background-image: url('/background.jpg'); /* 或者使用相对路径: url('./background.jpg') */
+  background-image: url('/background.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center; /* 垂直居中 */
-  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
   position: relative;
 }
 
-.back-btn {
-  position: absolute;
-  top: 20px;
-  left: 20px;
+.login-content {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  color: #1a365d;
-  font-size: 14px;
-  font-weight: 500;
-  z-index: 100;
-}
-
-.back-btn:hover {
-  background: #fff;
-  transform: translateX(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.back-btn .el-icon {
-  font-size: 16px;
-}
-
-
-
-.login-page > * {
+  justify-content: center;
+  padding: 80px 20px 40px;
+  min-height: calc(100vh - 56px);
   position: relative;
   z-index: 1;
 }
 
 .school-header {
   text-align: center;
-  color: rgb(21, 20, 71);
-  margin-bottom: 30px;
-  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+  color: white;
+  margin-bottom: 40px;
+  padding: 40px 60px;
+  background: rgba(30, 79, 156, 0.85);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(30, 79, 156, 0.3);
+  max-width: 800px;
+  width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .school-name {
-  font-size: 2.5rem;
-  font-weight: bold;
-  margin-bottom: 10px;
+  margin: 0 0 12px 0;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .school-english {
-  font-size: 1.2rem;
-  font-weight: normal;
-  margin-bottom: 15px;
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 400;
   opacity: 0.95;
+  letter-spacing: 1.5px;
 }
 
 .platform-name {
-  font-size: 1.1rem;
-  background: rgba(19, 15, 47, 0.25);
-  padding: 8px 20px;
-  border-radius: 20px;
-  display: inline-block;
+  font-size: 20px;
+  font-weight: 600;
+  padding: 10px 28px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(26, 10, 108, 0.2);
+  display: inline-block;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .login-card {
@@ -1009,17 +944,19 @@ const login = async () => {
 .card-header {
   padding: 30px 30px 20px;
   text-align: center;
-  border-bottom: 1px solid #071c3d;
+  background: linear-gradient(135deg, #1e4f9c 0%, #2563eb 100%);
+  color: white;
+  border-bottom: none;
 }
 
 .card-header h3 {
   font-size: 1.5rem;
-  color: #333;
+  color: white;
   margin-bottom: 8px;
 }
 
 .subtitle {
-  color: #666;
+  color: rgba(255, 255, 255, 0.9);
   font-size: 0.9rem;
 }
 
@@ -1043,14 +980,14 @@ const login = async () => {
 }
 
 .identity-option:hover {
-  border-color: #667eea;
-  background: #0d164b;
+  border-color: #2563eb;
+  background: #eff6ff;
 }
 
 .identity-option.active {
-  border-color: #667eea;
-  background: #f0f5ff;
-  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 5px 15px rgba(37, 99, 235, 0.2);
 }
 
 .identity-text {
@@ -1101,8 +1038,8 @@ const login = async () => {
 
 .form-input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .captcha-line {
@@ -1168,7 +1105,7 @@ const login = async () => {
 .login-btn {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #667eea 0%, #19134d 100%);
+  background: linear-gradient(135deg, #1e4f9c 0%, #2563eb 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -1177,11 +1114,13 @@ const login = async () => {
   cursor: pointer;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   margin-top: 10px;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
 }
 
 .login-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.4);
+  background: linear-gradient(135deg, #2563eb 0%, #1e4f9c 100%);
 }
 
 .login-btn:disabled {
@@ -1195,16 +1134,11 @@ const login = async () => {
 }
 
 .forgot-password-btn {
-  background: none;
-  border: none;
-  color: #667eea;
-  cursor: pointer;
-  font-size: 0.9rem;
-  padding: 5px 0;
+  color: #2563eb;
 }
 
 .forgot-password-btn:hover {
-  color: #5568d3;
+  color: #1e4f9c;
   text-decoration: underline;
 }
 
@@ -1281,7 +1215,7 @@ const login = async () => {
 .submit-btn {
   width: 100%;
   padding: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1e4f9c 0%, #2563eb 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -1290,11 +1224,12 @@ const login = async () => {
   cursor: pointer;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   margin-top: 10px;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
 }
 
 .submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 5px 15px rgba(37, 99, 235, 0.4);
 }
 
 .submit-btn:disabled {
@@ -1371,11 +1306,18 @@ const login = async () => {
   font-size: 14px;
   font-weight: 500;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.code-btn:hover:not(:disabled) {
+  background: #1e4f9c;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
 }
 
 .code-btn:disabled {
   background: #94a3b8;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .code-hint {
@@ -1424,8 +1366,8 @@ const login = async () => {
 }
 
 .checkbox-label input[type="checkbox"]:checked + .checkmark {
-  background-color: #667eea;
-  border-color: #667eea;
+  background-color: #2563eb;
+  border-color: #2563eb;
 }
 
 .checkbox-label input[type="checkbox"]:checked + .checkmark::after {
@@ -1474,120 +1416,57 @@ const login = async () => {
 }
 
 .cas-hint {
-  margin: 10px 0 0;
   font-size: 12px;
   color: #94a3b8;
-  line-height: 1.45;
-}
-
-/* 开发者入口样式 */
-.dev-entry {
-  position: absolute;
-  bottom: 15px;
-  right: 15px;
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  opacity: 0.6;
-  transition: all 0.3s ease;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-}
-
-.dev-entry:hover {
-  opacity: 1;
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
-}
-
-.dev-text {
-  font-size: 14px;
-  color: #fff;
-  font-weight: bold;
-  letter-spacing: 1px;
-}
-
-.login-form {
-  position: relative;
-}
-
-/* 开发者弹窗样式 */
-.dev-modal {
-  max-width: 380px;
-}
-
-.dev-tip {
-  color: #666;
-  font-size: 0.85rem;
-  margin-bottom: 15px;
-  text-align: center;
-}
-
-.dev-role-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.dev-role-btn {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  border: 1px solid #e0e0e0;
-  border-radius: 10px;
-  background: #fff;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.dev-role-btn:hover {
-  border-color: #667eea;
-  background: #f8f9ff;
-  transform: translateX(4px);
-}
-
-.role-icon {
-  font-size: 1.5rem;
-}
-
-.role-info {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.role-name {
-  font-weight: 600;
-  color: #333;
-  font-size: 1rem;
-}
-
-.role-desc {
-  font-size: 0.8rem;
-  color: #888;
+  margin-top: 8px;
+  line-height: 1.5;
 }
 
 /* 响应式设计 */
-@media (max-width: 600px) {
-  .login-page {
-    padding: 10px;
+@media (max-width: 768px) {
+  .login-content {
+    padding: 70px 16px 30px;
   }
-  
+
+  .school-header {
+    padding: 30px 24px;
+    margin-bottom: 30px;
+  }
+
   .school-name {
-    font-size: 2rem;
+    font-size: 28px;
+    letter-spacing: 2px;
   }
-  
+
   .school-english {
-    font-size: 1rem;
+    font-size: 15px;
   }
-  
+
   .platform-name {
-    font-size: 0.9rem;
+    font-size: 17px;
+    padding: 8px 20px;
+  }
+
+  .login-card {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .card-header {
+    padding: 28px 20px;
+  }
+
+  .card-header h3 {
+    font-size: 22px;
+  }
+
+  .login-form {
+    padding: 28px 24px;
+  }
+
+  .captcha-img {
+    width: 110px;
+    height: 44px;
   }
 
   .form-row {
@@ -1603,15 +1482,51 @@ const login = async () => {
   .login-card {
     border-radius: 10px;
   }
-  
+
   .card-header,
   .identity-select,
   .login-form {
     padding: 20px;
   }
-  
+
   .identity-select {
     flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-content {
+    padding: 70px 12px 20px;
+  }
+
+  .school-header {
+    padding: 24px 20px;
+  }
+
+  .school-name {
+    font-size: 24px;
+  }
+
+  .school-english {
+    font-size: 13px;
+  }
+
+  .platform-name {
+    font-size: 15px;
+  }
+
+  .login-card {
+    max-width: 100%;
+  }
+
+  .captcha-line {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .captcha-img {
+    width: 100%;
+    height: 50px;
   }
 }
 

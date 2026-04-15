@@ -113,7 +113,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getLeaveList, cancelLeave, parseLeavePage } from '../../api/leaveApi'
+import { getMyLeaveList, cancelLeave } from '../../api/leaveApi'
 
 const router = useRouter()
 const loading = ref(false)
@@ -225,16 +225,38 @@ function buildQueryParams() {
   return params
 }
 
+// 解析分页数据的辅助函数
+function parseLeavePage(res) {
+  const data = res?.data || res
+  if (!data) return { records: [], total: 0 }
+
+  // 兼容多种返回格式
+  if (Array.isArray(data)) {
+    return { records: data, total: data.length }
+  }
+
+  return {
+    records: data?.records || data?.list || [],
+    total: data?.total || 0
+  }
+}
+
 async function loadData() {
   loading.value = true
   try {
-    const res = await getLeaveList(buildQueryParams())
+    // 获取当前用户ID
+    const counselorId = localStorage.getItem('userId') || localStorage.getItem('user_id')
+
+    // 使用 getMyLeaveList 接口
+    const res = await getMyLeaveList(counselorId)
+
     if (res?.code !== 200) {
       leaves.value = []
       total.value = 0
       ElMessage.error(res?.msg || res?.message || '加载失败')
       return
     }
+
     const { records, total: t } = parseLeavePage(res)
     total.value = Number(t) || 0
     leaves.value = (records || []).filter(Boolean).map(normalizeItem)

@@ -405,25 +405,35 @@ const loadChildren = async () => {
 }
 
 const loadProfile = async () => {
-  const child = children.value.find((c) => String(c.studentId) === String(selectedChild.value))
-  if (!child?.studentId) {
-    profile.value = emptyProfile()
-    return
-  }
   try {
-    loading.value = true
-    loadError.value = ''
-    const res = await getChildProfile(child.studentId)
-    const raw = res.data
-    profile.value = normalizeGrowthProfile(raw)
-  } catch (error) {
-    console.error('加载成长档案失败', error)
-    loadError.value = '成长档案暂不可用（接口异常时可开启 VITE_PARENT_API_FALLBACK）'
-    ElMessage.error('加载成长档案失败')
-    profile.value = emptyProfile()
-  } finally {
-    loading.value = false
+    // 优先使用 userId（JWT subject，可能是数字或UUID）
+    const userId = localStorage.getItem('userId') || localStorage.getItem('user_id') || ''
+    const studentId = localStorage.getItem('studentId') || ''
+
+    let params = {}
+
+    if (userId) {
+      // userId 可能是数字或UUID，都作为 id 传递
+      params = { id: userId }
+      console.log('[profile] 使用 userId:', userId)
+    } else if (studentId) {
+      // 降级使用 studentId
+      params = { studentId }
+      console.log('[profile] 使用 studentId:', studentId)
+    }
+
+    if (Object.keys(params).length > 0) {
+      const res = await getProfileDetail(params)
+      if (isSuccess(res) && res.data) {
+        profile.value = normalizeProfile(res.data)
+        return
+      }
+    }
+  } catch (e) {
+    console.error('[profile] GET /api/profile/detail 失败', e)
+    ElMessage.error('加载个人档案失败，请稍后重试')
   }
+  profile.value = normalizeProfile({})
 }
 
 const currentChild = computed(() => {

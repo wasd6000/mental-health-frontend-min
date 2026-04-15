@@ -150,16 +150,41 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
 import {
   getActivityList,
   getActivityDetail,
-  getMyActivityList,
-  parseActivityPage,
-  signupActivity,
-  cancelActivityRegistration,
+  getMyActivities,
+  joinActivity,
+  cancelActivity,
 } from '../../api/activity.js'
+
+// 解析分页数据的辅助函数
+function parseActivityPage(res: any) {
+  const data = res?.data || res
+  if (!data) return { records: [], total: 0 }
+
+  // 兼容多种返回格式
+  if (Array.isArray(data)) {
+    return { records: data, total: data.length }
+  }
+
+  return {
+    records: data?.records || data?.list || [],
+    total: data?.total || 0
+  }
+}
+
+// 报名活动的包装函数
+async function signupActivity(params: { activityId: string }) {
+  return joinActivity(params.activityId)
+}
+
+// 取消报名的包装函数
+async function cancelActivityRegistration(params: { activityId: string }) {
+  return cancelActivity(params.activityId)
+}
 
 const router = useRouter()
 const loading = ref(false)
@@ -265,7 +290,7 @@ async function loadData() {
         pageSize: pageSize.value,
         keyword: keyword.value?.trim() || undefined,
       }),
-      getMyActivityList({ page: 1, pageSize: 500 }),
+      getMyActivities({ page: 1, pageSize: 500 }),
     ])
     const { total: t, records } = parseActivityPage(listRes)
     total.value = Number(t) || 0
@@ -280,7 +305,7 @@ async function loadData() {
     activities.value = []
     total.value = 0
     const msg =
-      e?.response?.data?.msg || e?.response?.data?.message || e?.message || '加载失败'
+        e?.response?.data?.msg || e?.response?.data?.message || e?.message || '加载失败'
     ElMessage.error(typeof msg === 'string' ? msg : '加载失败')
   } finally {
     loading.value = false

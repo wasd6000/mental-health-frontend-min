@@ -20,3 +20,12 @@ export function getArchiveStudentDetail(params) {
 export function getCenterApprovalList(params) {
   return request.get('/api/center/approval/list', { params })
 }
+
+/**
+ * 获取学生家庭成员信息
+ */
+export function getStudentFamily(studentId) {
+  return request.get('/api/center/archive/student/family', {
+    params: { studentId }
+  })
+}

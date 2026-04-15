@@ -542,9 +542,24 @@ function normalizeProfile(raw) {
 
 const loadProfile = async () => {
   try {
+    // 优先使用 userId（JWT subject，可能是 UUID 或数字）
+    const userId = localStorage.getItem('userId') || localStorage.getItem('user_id') || ''
     const studentId = localStorage.getItem('studentId') || ''
-    if (studentId) {
-      const res = await getProfileDetail({ studentId })
+
+    let params = {}
+
+    if (userId) {
+      // 直接使用 userId，不转换类型（UUID 保持字符串，数字保持数字）
+      params = { id: userId }
+      console.log('[profile] 使用 userId:', userId, 'type:', typeof userId)
+    } else if (studentId) {
+      // 降级使用 studentId
+      params = { studentId }
+      console.log('[profile] 使用 studentId:', studentId)
+    }
+
+    if (Object.keys(params).length > 0) {
+      const res = await getProfileDetail(params)
       if (isSuccess(res) && res.data) {
         profile.value = normalizeProfile(res.data)
         return

@@ -144,9 +144,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, markRaw } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { User, TrendCharts, Warning, Document, Calendar, Timer } from '@element-plus/icons-vue'
 import { getArchiveStudents, getArchiveStudentDetail } from '../../api/centerArchive'
 import { exportByApi } from '../../utils/exporter'
 
@@ -169,7 +170,65 @@ const deptList = ref([
   { label: '软件工程', value: 'se' },
   { label: '信息安全', value: 'is' },
   { label: '物联网工程', value: 'iot' },
-  { label: '数据科学', value: 'ds' },
+  { label: '数据科学与大数据', value: 'ds' }
+])
+
+const overviewData = ref([
+  {
+    label: '学生总数',
+    value: '3,256',
+    icon: markRaw(User),
+    color: '#3b82f6',
+    bgColor: '#eff6ff',
+    extra: { label: '已测评', value: '2,979', type: '' }
+  },
+  {
+    label: '测评完成率',
+    value: '91.5%',
+    icon: markRaw(TrendCharts),
+    color: '#10b981',
+    bgColor: '#f0fdf4',
+    trend: 5.2,
+    trendPositive: true
+  },
+  {
+    label: '危机个案数',
+    value: 27,
+    icon: markRaw(Warning),
+    color: '#ef4444',
+    bgColor: '#fef2f2',
+    trend: -12,
+    trendPositive: false,
+    extra: { label: '处理中', value: '8', type: 'warning' }
+  },
+  {
+    label: '咨询服务量',
+    value: 156,
+    icon: markRaw(Document),
+    color: '#8b5cf6',
+    bgColor: '#f5f3ff',
+    trend: 8.5,
+    trendPositive: true,
+    extra: { label: '本月', value: '+23', type: 'success' }
+  },
+  {
+    label: '活动参与人次',
+    value: '1,280',
+    icon: markRaw(Calendar),
+    color: '#f59e0b',
+    bgColor: '#fffbeb',
+    trend: 15,
+    trendPositive: true
+  },
+  {
+    label: '平均响应时间',
+    value: '2.5h',
+    icon: markRaw(Timer),
+    color: '#06b6d4',
+    bgColor: '#ecfeff',
+    trend: -18,
+    trendPositive: false
+  }
 ])
 
 const detailVisible = ref(false)
@@ -193,10 +252,11 @@ const loadData = async () => {
     }
     const res = await getArchiveStudents(params)
     if (res.code === 200) {
-      studentList.value = res.data?.list || res.data || []
-      totalCount.value = res.data?.total || studentList.value.length
-      riskCount.value = res.data?.riskCount || 0
-      assessmentRate.value = res.data?.assessmentRate || 0
+      const data = res.data
+      studentList.value = Array.isArray(data) ? data : (data?.list || data?.records || [])
+      totalCount.value = data?.total || studentList.value.length
+      riskCount.value = data?.riskCount || 0
+      assessmentRate.value = data?.assessmentRate || 0
     }
   } catch (e) {
     studentList.value = [

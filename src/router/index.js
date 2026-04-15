@@ -501,7 +501,7 @@ const routes = [
     {
       path: 'peer-forum',
       component: () => import('../views/admin/AdminPeerForum.vue'),
-      meta: { needAuth: true, roles: ['admin', 'center', 'counselor'] }
+      meta: { needAuth: true, roles: ['admin', 'center', 'counselor', 'tutor', 'instructor'] }
     },
 
     // 心理中心端专属
@@ -624,74 +624,74 @@ const routes = [
     {
       path: 'college-workbench',
       component: () => import('../views/college/CollegeWorkbench.vue'),
-      meta: { needAuth: true, roles: ['college'] }
+      meta: { needAuth: true, roles: ['college', 'college_leader'] }
     },
     {
       path: 'college-statistics',
       component: () => import('../views/college/CollegeStatistics.vue'),
-      meta: { needAuth: true, roles: ['college'] }
+      meta: { needAuth: true, roles: ['college', 'college_leader'] }
     },
     {
       path: 'college-report',
       component: () => import('../views/college/CollegeReport.vue'),
-      meta: { needAuth: true, roles: ['college'] }
+      meta: { needAuth: true, roles: ['college', 'college_leader'] }
     },
     {
       path: 'college-crisis',
       component: () => import('../views/college/CollegeCrisis.vue'),
-      meta: { needAuth: true, roles: ['college'] }
+      meta: { needAuth: true, roles: ['college', 'college_leader'] }
     },
     {
       path: 'college-students',
       component: () => import('../views/college/CollegeStudents.vue'),
-      meta: { needAuth: true, roles: ['college'] }
+      meta: { needAuth: true, roles: ['college', 'college_leader'] }
     },
     {
       path: 'college-manage',
       component: () => import('../views/college/CollegeManage.vue'),
-      meta: { needAuth: true, roles: ['college'] }
+      meta: { needAuth: true, roles: ['college', 'college_leader'] }
     },
     {
       path: 'college-tutors',
       component: () => import('../views/college/CollegeManage.vue'),
-      meta: { needAuth: true, roles: ['college'] }
+      meta: { needAuth: true, roles: ['college', 'college_leader'] }
     },
     {
       path: 'college-message-center',
       component: () => import('../views/message/MessageCenter.vue'),
-      meta: { needAuth: true, roles: ['college'] }
+      meta: { needAuth: true, roles: ['college', 'college_leader'] }
     },
 
     // 校领导端路由
     {
       path: 'leader-workbench',
       component: () => import('../views/leader/LeaderWorkbench.vue'),
-      meta: { needAuth: true, roles: ['leader'] }
+      meta: { needAuth: true, roles: ['leader', 'school_leader'] }
     },
     {
       path: 'leader-statistics',
       component: () => import('../views/leader/LeaderStatistics.vue'),
-      meta: { needAuth: true, roles: ['leader'] }
+      meta: { needAuth: true, roles: ['leader', 'school_leader'] }
     },
     {
       path: 'leader-report',
       component: () => import('../views/leader/LeaderReport.vue'),
-      meta: { needAuth: true, roles: ['leader'] }
+      meta: { needAuth: true, roles: ['leader', 'school_leader'] }
     },
     {
       path: 'leader-crisis',
       component: () => import('../views/leader/LeaderCrisis.vue'),
-      meta: { needAuth: true, roles: ['leader'] }
+      meta: { needAuth: true, roles: ['leader', 'school_leader'] }
     },
     {
       path: 'leader-colleges',
       component: () => import('../views/leader/LeaderColleges.vue'),
-      meta: { needAuth: true, roles: ['leader'] }
+      meta: { needAuth: true, roles: ['leader', 'school_leader'] }
     },
     {
       path: 'leader-message-center',
       component: () => import('../views/message/MessageCenter.vue'),
-      meta: { needAuth: true, roles: ['leader'] }
+      meta: { needAuth: true, roles: ['leader', 'school_leader'] }
     }
   ]
 }
@@ -721,7 +721,8 @@ if (to.path.startsWith('/admin')) {
   }
 
   // 允许的角色列表，包含 instructor 和 tutor（都是辅导员）
-  const allowRoles = ['admin', 'counselor', 'center', 'tutor', 'instructor', 'college', 'leader']
+  // 包含 college_leader 和 school_leader 的兼容
+  const allowRoles = ['admin', 'counselor', 'center', 'tutor', 'instructor', 'college', 'college_leader', 'leader', 'school_leader']
 
 
   // 第一层：判断是否后台用户
@@ -735,10 +736,10 @@ if (to.path.startsWith('/admin')) {
     if (role === 'tutor' || role === 'instructor') {
       return next('/admin/tutor-workbench')
     }
-    if (role === 'college') {
+    if (role === 'college' || role === 'college_leader') {
       return next('/admin/college-workbench')
     }
-    if (role === 'leader') {
+    if (role === 'leader' || role === 'school_leader') {
       return next('/admin/leader-workbench')
     }
   }
@@ -828,18 +829,18 @@ if (to.path.startsWith('/admin')) {
    * 请求 /api/** 时被 Spring Security 拒绝（常见 403）。
    */
   if (needAuth && Array.isArray(to.meta?.roles) && to.meta.roles.length > 0) {
-    const staffRoles = ['counselor', 'center', 'admin', 'tutor', 'instructor', 'college', 'leader']
+    const staffRoles = ['counselor', 'center', 'admin', 'tutor', 'instructor', 'college', 'college_leader', 'leader', 'school_leader']
     const routeNeedsStaffSession = to.meta.roles.some((r) => staffRoles.includes(r))
     if (
-      routeNeedsStaffSession &&
-      !to.path.startsWith('/admin') &&
-      !to.path.startsWith('/counselor') &&
-      !to.path.startsWith('/leave')
+        routeNeedsStaffSession &&
+        !to.path.startsWith('/admin') &&
+        !to.path.startsWith('/counselor') &&
+        !to.path.startsWith('/leave')
     ) {
       const token =
-        localStorage.getItem('auth_token') ||
-        localStorage.getItem('admin_token') ||
-        localStorage.getItem('access_token')
+          localStorage.getItem('auth_token') ||
+          localStorage.getItem('admin_token') ||
+          localStorage.getItem('access_token')
 
       // 从 admin_role 或 user_role 获取
       let role = localStorage.getItem('admin_role')

@@ -117,7 +117,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { useRouter } from 'vue-router'
 import {
@@ -130,9 +130,9 @@ import {
   ChatDotRound,
 } from '@element-plus/icons-vue'
 import { getCounselorAppointmentsAsync } from '../../api/appointment'
-import { getRecordsByConsultantAsync } from '../../api/record'
+import { getCounselorRecords } from '../../api/record'
 import { getCounselorUserId } from '../../utils/counselorSession.js'
-import { getCasesByConsultantAsync } from '../../api/case'
+import { getCounselorCases } from '../../api/case'
 import { getCrisesByConsultantAsync } from '../../api/crisis'
 import type { Appointment } from '../../types/appointment'
 import type { Case } from '../../types/case'
@@ -146,6 +146,9 @@ const appointments = ref<Appointment[]>([])
 const records = ref<any[]>([])
 const casesList = ref<Case[]>([])
 const crises = ref<CrisisCase[]>([])
+
+// 图表维度选择
+const statsType = ref<'累计'|'年'|'月'>('累计')
 
 const today = toDay(new Date())
 
@@ -310,13 +313,23 @@ async function fetchAllData() {
   try {
     const [apptRes, rres, cres, cris] = await Promise.all([
       getCounselorAppointmentsAsync(counselorId),
-      getRecordsByConsultantAsync(counselorId),
-      getCasesByConsultantAsync(counselorId),
+      getCounselorRecords({ counselorId }),
+      getCounselorCases({ counselorId }),
       getCrisesByConsultantAsync(counselorId),
     ])
+
+    // 处理分页响应格式
+    const recordsData = rres?.data
+    records.value = Array.isArray(recordsData)
+        ? recordsData
+        : (recordsData?.list || recordsData?.records || [])
+
+    const casesData = cres?.data
+    casesList.value = Array.isArray(casesData)
+        ? casesData
+        : (casesData?.list || casesData?.records || [])
+
     appointments.value = apptRes?.data || []
-    records.value = rres?.data || []
-    casesList.value = cres?.data || []
     crises.value = cris?.data || []
 
     groupActivities.value = [
@@ -327,12 +340,12 @@ async function fetchAllData() {
     ]
 
     if (workChart == null || unfinishedChart == null) {
-      await new Promise(r => setTimeout(r, 100))
-      initWorkChart()
-      initUnfinishedChart()
+      await nextTick()
+      await initWorkChart()
+      await initUnfinishedChart()
     }
   } catch (e) {
-    console.error('获取数据失败', e)
+    console.error('加载咨询师数据失败:', e)
   }
 }
 
@@ -380,7 +393,7 @@ const unwrittenCount = computed(() =>
 )
 
 const caseCount = computed(() =>
-  casesList.value.filter((c: CrisisCase) => !c.status || c.status !== 'closed').length
+    casesList.value.filter((c: any) => !c.status || c.status !== 'closed').length
 )
 
 const crisisPendingCount = computed(() =>

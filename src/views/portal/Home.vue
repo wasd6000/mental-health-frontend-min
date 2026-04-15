@@ -256,9 +256,9 @@ const goPeerSupport = () => {
       localStorage.getItem('User_role') ||
       localStorage.getItem('admin_role')
 
-  if (role === 'center') {
+  if (['center', 'college', 'college_leader'].includes(role)) {
     router.push('/admin/peer-forum')
-  } else if (['admin', 'counselor', 'tutor', 'instructor', 'college', 'leader'].includes(role)) {
+  } else if (['admin', 'counselor', 'tutor', 'instructor', 'leader', 'school_leader'].includes(role)) {
     router.push('/admin/peer-forum')
   } else {
     router.push('/student/peer-support')

@@ -87,7 +87,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, markRaw } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   User,
@@ -107,10 +107,10 @@ import { getCrisisList } from '../../api/crisisApi'
 const router = useRouter()
 
 const statsData = ref([
-  { label: '院系学生总数', value: 0, color: 'linear-gradient(135deg, #3b82f6, #2563eb)', icon: User },
-  { label: '危机个案数', value: 0, color: 'linear-gradient(135deg, #ef4444, #dc2626)', icon: Warning, trend: -12 },
-  { label: '测评完成率', value: '0%', color: 'linear-gradient(135deg, #10b981, #059669)', icon: DataAnalysis, trend: 5 },
-  { label: '本月咨询量', value: 0, color: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', icon: Document },
+  { label: '院系学生总数', value: 0, color: 'linear-gradient(135deg, #3b82f6, #2563eb)', icon: markRaw(User) },
+  { label: '危机个案数', value: 0, color: 'linear-gradient(135deg, #ef4444, #dc2626)', icon: markRaw(Warning), trend: -12 },
+  { label: '测评完成率', value: '0%', color: 'linear-gradient(135deg, #10b981, #059669)', icon: markRaw(DataAnalysis), trend: 5 },
+  { label: '本月咨询量', value: 0, color: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', icon: markRaw(Document) },
 ])
 
 const todoList = ref([])
@@ -124,37 +124,37 @@ let crisisChart = null
 const quickActions = [
   {
     label: '数据统计',
-    icon: TrendCharts,
+    icon: markRaw(TrendCharts),
     color: 'linear-gradient(135deg, #3b82f6, #2563eb)',
     handler: () => router.push('/admin/college-statistics'),
   },
   {
     label: '报表查看',
-    icon: Document,
+    icon: markRaw(Document),
     color: 'linear-gradient(135deg, #10b981, #059669)',
     handler: () => router.push('/admin/college-report'),
   },
   {
     label: '危机管理',
-    icon: Warning,
+    icon: markRaw(Warning),
     color: 'linear-gradient(135deg, #ef4444, #dc2626)',
     handler: () => router.push('/admin/college-crisis'),
   },
   {
     label: '学生管理',
-    icon: UserFilled,
+    icon: markRaw(UserFilled),
     color: 'linear-gradient(135deg, #f59e0b, #d97706)',
     handler: () => router.push('/admin/college-students'),
   },
   {
     label: '院系管理',
-    icon: School,
+    icon: markRaw(School),
     color: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
     handler: () => router.push('/admin/college-manage'),
   },
   {
     label: '辅导员管理',
-    icon: User,
+    icon: markRaw(User),
     color: 'linear-gradient(135deg, #6366f1, #4f46e5)',
     handler: () => router.push('/admin/college-tutors'),
   },

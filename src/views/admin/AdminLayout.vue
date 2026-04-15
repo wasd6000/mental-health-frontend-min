@@ -62,8 +62,8 @@
           <div class="item" :class="{ active: currentPath === 'peer-forum' }" @click="go('peer-forum')">朋辈互助审核</div>
         </template>
 
-        <!-- 院系领导专属菜单 -->
-        <template v-else-if="role === 'college'">
+        <!-- 院系领导专属菜单（支持 college 和 college_leader 两种角色代码） -->
+        <template v-if="role === 'college' || role === 'college_leader'">
           <div class="item" :class="{ active: currentPath === 'college-workbench' }" @click="go('college-workbench')">工作台</div>
           <div class="item" :class="{ active: currentPath === 'college-statistics' }" @click="go('college-statistics')">数据统计</div>
           <div class="item" :class="{ active: currentPath === 'college-report' }" @click="go('college-report')">报表查看</div>
@@ -74,8 +74,8 @@
           <div class="item" :class="{ active: currentPath === 'peer-forum' }" @click="go('peer-forum')">朋辈互助审核</div>
         </template>
 
-        <!-- 校领导专属菜单 -->
-        <template v-else-if="role === 'leader'">
+        <!-- 校领导专属菜单（支持 leader 和 school_leader 两种角色代码） -->
+        <template v-else-if="role === 'leader' || role === 'school_leader'">
           <div class="item" :class="{ active: currentPath === 'leader-workbench' }" @click="go('leader-workbench')">工作台</div>
           <div class="item" :class="{ active: currentPath === 'leader-statistics' }" @click="go('leader-statistics')">数据统计</div>
           <div class="item" :class="{ active: currentPath === 'leader-report' }" @click="go('leader-report')">报表查看</div>
@@ -219,10 +219,12 @@ const roleMap = {
   admin: '管理员',
   counselor: '咨询师',
   center: '心理中心',
-  college: '二级学院',
+  college: '院系领导',
+  college_leader: '院系领导',
   leader: '校领导',
+  school_leader: '校领导',
   tutor: '辅导员',
-  instructor: '辅导员', // 添加 instructor 映射
+  instructor: '辅导员',
 }
 const roleName = computed(() => roleMap[role.value] || '用户')
 

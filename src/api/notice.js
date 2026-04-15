@@ -1,11 +1,11 @@
-import request from './request.js'
+// src/api/notice.js
+import { normalizeId } from '../utils/idHelper'
 
-/** GET /api/notice/list */
-export function getNoticeList(params) {
-  return request.get('/api/notice/list', { params })
-}
+export function getNoticeDetail(id) {
+  // 公告模块使用自增 ID，转换为数字
+  const normalizedId = normalizeId(id, 'notice')
 
-/** GET /api/notice/detail */
-export function getNoticeDetail(params) {
-  return request.get('/api/notice/detail', { params })
+  return request.get('/api/notice/detail', {
+    params: { id: normalizedId }
+  })
 }

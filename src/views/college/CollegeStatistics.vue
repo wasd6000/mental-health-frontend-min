@@ -114,9 +114,9 @@
               <div class="card-header">
                 <span class="card-title">测评完成趋势</span>
                 <el-radio-group v-model="assessmentChartType" size="small">
-                  <el-radio-button label="week">周</el-radio-button>
-                  <el-radio-button label="month">月</el-radio-button>
-                  <el-radio-button label="quarter">季度</el-radio-button>
+                  <el-radio-button value="week">周</el-radio-button>
+                  <el-radio-button value="month">月</el-radio-button>
+                  <el-radio-button value="quarter">季度</el-radio-button>
                 </el-radio-group>
               </div>
             </template>
@@ -261,8 +261,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
-import { 
+import { ref, onMounted, onUnmounted, watch, computed, nextTick, markRaw } from 'vue'
+import {
   Download, Refresh, ArrowDown, Top, Bottom, QuestionFilled,
   User, Warning, TrendCharts, Document, Calendar, Timer, ArrowLeft
 } from '@element-plus/icons-vue'
@@ -286,57 +286,57 @@ const deptList = ref([
 ])
 
 const overviewData = ref([
-  { 
-    label: '学生总数', 
-    value: '3,256', 
-    icon: User, 
-    color: '#3b82f6', 
+  {
+    label: '学生总数',
+    value: '3,256',
+    icon: markRaw(User),
+    color: '#3b82f6',
     bgColor: '#eff6ff',
     extra: { label: '已测评', value: '2,979', type: '' }
   },
-  { 
-    label: '测评完成率', 
-    value: '91.5%', 
-    icon: TrendCharts, 
-    color: '#10b981', 
+  {
+    label: '测评完成率',
+    value: '91.5%',
+    icon: markRaw(TrendCharts),
+    color: '#10b981',
     bgColor: '#f0fdf4',
     trend: 5.2,
     trendPositive: true
   },
-  { 
-    label: '危机个案数', 
-    value: 27, 
-    icon: Warning, 
-    color: '#ef4444', 
+  {
+    label: '危机个案数',
+    value: 27,
+    icon: markRaw(Warning),
+    color: '#ef4444',
     bgColor: '#fef2f2',
     trend: -12,
     trendPositive: false,
     extra: { label: '处理中', value: '8', type: 'warning' }
   },
-  { 
-    label: '咨询服务量', 
-    value: 156, 
-    icon: Document, 
-    color: '#8b5cf6', 
+  {
+    label: '咨询服务量',
+    value: 156,
+    icon: markRaw(Document),
+    color: '#8b5cf6',
     bgColor: '#f5f3ff',
     trend: 8.5,
     trendPositive: true,
     extra: { label: '本月', value: '+23', type: 'success' }
   },
-  { 
-    label: '活动参与人次', 
-    value: '1,280', 
-    icon: Calendar, 
-    color: '#f59e0b', 
+  {
+    label: '活动参与人次',
+    value: '1,280',
+    icon: markRaw(Calendar),
+    color: '#f59e0b',
     bgColor: '#fffbeb',
     trend: 15,
     trendPositive: true
   },
-  { 
-    label: '平均响应时间', 
-    value: '2.5h', 
-    icon: Timer, 
-    color: '#06b6d4', 
+  {
+    label: '平均响应时间',
+    value: '2.5h',
+    icon: markRaw(Timer),
+    color: '#06b6d4',
     bgColor: '#ecfeff',
     trend: -18,
     trendPositive: false

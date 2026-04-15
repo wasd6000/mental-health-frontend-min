@@ -240,7 +240,8 @@ const loadData = async () => {
   try {
     const res = await getArchiveCounselors()
     if (res.code === 200) {
-      tutorList.value = res.data || []
+      const data = res.data
+      tutorList.value = Array.isArray(data) ? data : (data?.records || data?.list || [])
     }
   } catch (e) {
     tutorList.value = [
@@ -253,7 +254,8 @@ const loadData = async () => {
   try {
     const res = await getCollegeOptions()
     if (res.code === 200) {
-      deptList.value = res.data || []
+      const data = res.data
+      deptList.value = Array.isArray(data) ? data : (data?.records || data?.list || [])
     }
   } catch (e) {
     deptList.value = [

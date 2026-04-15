@@ -16,3 +16,10 @@ export function updateMicroCourseProgress(data) {
 export function getMyMicroCourses(params) {
   return request.get('/api/micro-course/my', { params })
 }
+
+/**
+ * 提交课程评价
+ */
+export function submitCourseReview(data) {
+  return request.post('/api/course/review', data)
+}

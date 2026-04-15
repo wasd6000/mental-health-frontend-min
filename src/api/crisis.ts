@@ -1,3 +1,4 @@
+import request from './request.js'
 import {
   getCrisisList as fetchCrisisListPage,
   getCrisisDetail as fetchCrisisDetailApi,
@@ -20,7 +21,11 @@ export async function getCrisesByConsultantAsync(_counselorId: string) {
 }
 
 export async function getCrisisDetailAsync(id: string) {
-  const res: any = await fetchCrisisDetailApi({ id })
+  // 危机模块使用 UUID，保持字符串
+  const normalizedId = normalizeId(id, 'crisis')
+
+  const res: any = await fetchCrisisDetailApi({ id: normalizedId })
+
   if (!isApiSuccess(res)) return res
   const d = res.data
   if (d) {
@@ -60,4 +65,11 @@ export async function fetchCrises() {
 export async function fetchCrisisDetail(id: string) {
   const res: any = await getCrisisDetailAsync(id)
   return isApiSuccess(res) ? res.data : null
+}
+
+/**
+ * 获取危机统计数据
+ */
+export function getCrisisStatistics() {
+  return request.get('/api/crisis-report/statistics')
 }

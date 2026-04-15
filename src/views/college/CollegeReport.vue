@@ -186,8 +186,9 @@ const loadReports = async () => {
       pageSize: pageSize.value,
     })
     if (res.code === 200) {
-      reportList.value = res.data?.list || res.data || []
-      totalCount.value = res.data?.total || reportList.value.length
+      const data = res.data
+      reportList.value = Array.isArray(data) ? data : (data?.list || data?.records || [])
+      totalCount.value = data?.total || reportList.value.length
     }
   } catch (e) {
     reportList.value = [

@@ -174,13 +174,47 @@ const permissionMatrix = [
 ]
 
 async function loadData() {
-  const res = await getScaleConfig()
-  const raw = res?.data || []
-  scaleList.value = raw.map((s) => ({
-    ...s,
-    itemCount: s.itemCount ?? 10,
-    usageCount: s.usageCount ?? Math.floor(Math.random() * 500),
-  }))
+  try {
+    const res = await getScaleConfig()
+    const raw = res?.data
+
+    console.log('量表配置原始数据:', raw)
+
+    // 处理不同的数据结构
+    let scaleArray = []
+
+    if (Array.isArray(raw)) {
+      // 如果直接是数组
+      scaleArray = raw
+    } else if (raw && typeof raw === 'object') {
+      // 如果是对象，尝试多种可能的字段名
+      scaleArray = raw.list || raw.records || raw.rows || raw.scales || []
+
+      // 如果提取到的还是对象（可能是嵌套结构），继续深入
+      if (!Array.isArray(scaleArray) && scaleArray && typeof scaleArray === 'object') {
+        // 尝试从嵌套对象中提取数组
+        scaleArray = scaleArray.list || scaleArray.records || scaleArray.rows || scaleArray.scales || []
+      }
+
+      // 最后检查是否为数组
+      if (!Array.isArray(scaleArray)) {
+        console.warn('量表配置数据格式异常，使用空数组:', raw)
+        scaleArray = []
+      }
+    }
+
+    console.log('处理后的量表数组:', scaleArray)
+
+    scaleList.value = scaleArray.map((s) => ({
+      ...s,
+      itemCount: s.itemCount ?? 10,
+      usageCount: s.usageCount ?? Math.floor(Math.random() * 500),
+    }))
+  } catch (e) {
+    console.error('加载量表配置失败:', e)
+    scaleList.value = []
+    ElMessage.error('加载量表配置失败')
+  }
 }
 
 function saveGlobalConfig() {

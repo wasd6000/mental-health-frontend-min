@@ -1,7 +1,7 @@
 <template>
   <div class="portal-nav-wrap">
-    <header class="portal-nav">
-      <div class="logo-area">
+    <header class="portal-nav" :class="`theme-${theme}`">
+    <div class="logo-area">
         <img src="@/assets/logo.png" alt="校徽" class="logo-img" />
         <span class="title">心理健康服务平台</span>
       </div>
@@ -77,6 +77,12 @@ defineProps({
     type: String,
     default: '',
   },
+  /** 主题色：red（红色）| blue（蓝色），默认 red */
+  theme: {
+    type: String,
+    default: 'red',
+    validator: (value) => ['red', 'blue'].includes(value),
+  },
 })
 
 const router = useRouter()
@@ -93,7 +99,9 @@ const roleText = computed(() => {
     instructor: '辅导员',
     tutor: '辅导员',
     college: '院系领导',
+    college_leader: '院系领导',
     leader: '校领导',
+    school_leader: '校领导',
     student: '学生',
     parent: '家长'
   }
@@ -102,7 +110,16 @@ const roleText = computed(() => {
 
 const roleClass = computed(() => {
   // 统一将 tutor 映射为 instructor 的样式
-  const displayRole = userRole.value === 'tutor' ? 'instructor' : userRole.value
+  // 将 college_leader 映射为 college 的样式
+  // 将 school_leader 映射为 leader 的样式
+  let displayRole = userRole.value
+  if (displayRole === 'tutor') {
+    displayRole = 'instructor'
+  } else if (displayRole === 'college_leader') {
+    displayRole = 'college'
+  } else if (displayRole === 'school_leader') {
+    displayRole = 'leader'
+  }
   return `role-${displayRole}`
 })
 
@@ -198,7 +215,9 @@ function goToDashboard() {
     instructor: '/admin/tutor-workbench',
     tutor: '/admin/tutor-workbench',
     college: '/admin/college-workbench',
+    college_leader: '/admin/college-workbench',
     leader: '/admin/leader-workbench',
+    school_leader: '/admin/leader-workbench',
     student: '/student/dashboard',
     parent: '/parent/dashboard'
   }
@@ -253,6 +272,17 @@ function handlePeerSupportClick() {
   min-height: 56px;
   box-sizing: border-box;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  transition: background 0.3s ease;
+}
+
+/* 蓝色主题 */
+.portal-nav.theme-blue {
+  background: linear-gradient(135deg, #1e4f9c 0%, #2563eb 100%);
+}
+
+/* 红色主题（默认） */
+.portal-nav.theme-red {
+  background: #a51c30;
 }
 
 .portal-nav-spacer {
@@ -335,10 +365,20 @@ function handlePeerSupportClick() {
   box-shadow: 0 4px 15px rgba(201, 162, 39, 0.4);
 }
 
+.theme-blue .btn-appoint {
+  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+}
+
 .btn-appoint:hover {
   transform: translateY(-2px);
   background: #b8921f;
   box-shadow: 0 6px 20px rgba(201, 162, 39, 0.5);
+}
+
+.theme-blue .btn-appoint:hover {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
 }
 
 .user-info {

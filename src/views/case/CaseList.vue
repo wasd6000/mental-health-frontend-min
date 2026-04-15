@@ -47,9 +47,8 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { fetchCases } from '../../api/case'
+<script setup lang="ts">import { ref, computed, onMounted } from 'vue'
+import { getCounselorCases } from '../../api/case'
 import { useRouter } from 'vue-router'
 
 const cases = ref<any[]>([])
@@ -57,10 +56,10 @@ const loading = ref(false)
 const router = useRouter()
 
 const openCount = computed(() =>
-  cases.value.filter((c) => c.status && c.status !== '已结案' && c.status !== 'closed').length
+    cases.value.filter((c) => c.status && c.status !== '已结案' && c.status !== 'closed').length
 )
 const closedCount = computed(() =>
-  cases.value.filter((c) => c.status === '已结案' || c.status === 'closed').length
+    cases.value.filter((c) => c.status === '已结案' || c.status === 'closed').length
 )
 
 function getStatusType(status: string) {
@@ -76,7 +75,10 @@ function viewDetail(row: any) {
 onMounted(async () => {
   loading.value = true
   try {
-    cases.value = await fetchCases()
+    const res = await getCounselorCases()
+    // 处理分页响应格式
+    const data = res?.data || res
+    cases.value = Array.isArray(data) ? data : (data?.list || data?.records || [])
   } catch {
     cases.value = []
   }

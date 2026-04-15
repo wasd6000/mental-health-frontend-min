@@ -22,8 +22,42 @@ export function getJwtSubject(token) {
   return pl && typeof pl.sub === 'string' ? pl.sub : ''
 }
 
-/** 从 JWT 中提取 role_code（用户角色编码），如 INSTRUCTOR、STUDENT、PARENT 等 */
+/** 从 JWT 中提取 role_code（用户角色编码），支持多种字段名 */
 export function getJwtRoleCode(token) {
   const pl = parseJwtPayload(token)
-  return pl && typeof pl.role_code === 'string' ? pl.role_code : ''
+  if (!pl || typeof pl !== 'object') return ''
+
+  // 尝试多种可能的字段名
+  const possibleFields = [
+    'role_code',      // 标准字段
+    'roleCode',       // 驼峰命名
+    'role',           // 简化字段
+    'roles',          // 复数形式
+    'userRole',       // 用户角色
+    'authority',      // Spring Security
+    'authorities',    // Spring Security 复数
+  ]
+
+  for (const field of possibleFields) {
+    const value = pl[field]
+    if (value) {
+      // 如果是数组，取第一个元素
+      if (Array.isArray(value)) {
+        if (value.length > 0) {
+          const first = value[0]
+          return typeof first === 'string' ? first : (first?.authority || first?.role || '')
+        }
+      }
+      // 如果是字符串，直接返回
+      if (typeof value === 'string') {
+        return value
+      }
+      // 如果是对象，尝试提取 authority 或 role
+      if (typeof value === 'object') {
+        return value.authority || value.role || ''
+      }
+    }
+  }
+
+  return ''
 }

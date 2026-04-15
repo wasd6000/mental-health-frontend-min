@@ -317,18 +317,18 @@
               >
                 <div class="level-change-item">
                   <div class="level-change">
-                    <span 
-                      v-if="record.fromLevel"
-                      class="level-from"
-                      :style="{ color: getLevelConfig(record.fromLevel)?.color }"
+                    <span
+                        v-if="record.fromLevel"
+                        class="level-from"
+                        :style="{ color: getLevelConfig(record.fromLevel)?.color }"
                     >
                       {{ getLevelConfig(record.fromLevel)?.shortLabel }}
                     </span>
                     <span v-else>初始建档</span>
-                    <el-icon><Right /></el-icon>
-                    <span 
-                      class="level-to"
-                      :style="{ 
+                    <el-icon><ArrowRight /></el-icon>
+                    <span
+                        class="level-to"
+                        :style="{
                         backgroundColor: getLevelConfig(record.toLevel)?.color,
                         color: '#fff'
                       }"
@@ -369,14 +369,52 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, markRaw } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Warning, Document, TrendCharts, User, ArrowLeft, ArrowRight, Plus, Search, Refresh, Download, ArrowDown } from '@element-plus/icons-vue'
 import { getCrisisList } from '../../api/crisisApi'
 import { exportByApi } from '../../utils/exporter'
 
 
 const router = useRouter()
+
+// 危机等级配置
+const CRISIS_LEVELS = [
+  { value: 'red', label: '极高危（红色）', shortLabel: '红色', color: '#dc2626', bgColor: '#fef2f2' },
+  { value: 'orange', label: '高危（橙色）', shortLabel: '橙色', color: '#f59e0b', bgColor: '#fffbeb' },
+  { value: 'yellow', label: '中危（黄色）', shortLabel: '黄色', color: '#eab308', bgColor: '#fefce8' },
+  { value: 'blue', label: '关注（蓝色）', shortLabel: '蓝色', color: '#1e4f9c', bgColor: '#eff6ff' }
+]
+
+// 危机状态配置
+const CRISIS_STATUS = [
+  { value: 'pending', label: '待处理', tagType: 'warning' },
+  { value: 'processing', label: '处理中', tagType: 'primary' },
+  { value: 'monitoring', label: '监控中', tagType: '' },
+  { value: 'closed', label: '已结案', tagType: 'info' }
+]
+
+// 危机类型配置
+const CRISIS_TYPES = [
+  { value: 'suicide', label: '自杀倾向' },
+  { value: 'self_harm', label: '自伤行为' },
+  { value: 'violence', label: '暴力倾向' },
+  { value: 'depression', label: '重度抑郁' },
+  { value: 'anxiety', label: '严重焦虑' },
+  { value: 'mental', label: '精神障碍' },
+  { value: 'other', label: '其他' }
+]
+
+// 获取等级配置
+const getLevelConfig = (level) => {
+  return CRISIS_LEVELS.find(l => l.value === level) || CRISIS_LEVELS[3]
+}
+
+// 获取状态配置
+const getStatusConfig = (status) => {
+  return CRISIS_STATUS.find(s => s.value === status) || CRISIS_STATUS[0]
+}
 
 const loading = ref(false)
 const crisisList = ref([])
@@ -399,10 +437,10 @@ const pagination = ref({
 })
 
 const overviewStats = ref([
-  { label: '危机个案总数', value: 186, icon: Warning, color: '#ef4444', bgColor: '#fef2f2', trend: -5 },
-  { label: '处理中', value: 42, icon: Document, color: '#1e4f9c', bgColor: '#f0f9ff' },
-  { label: '本月新增', value: 18, icon: TrendCharts, color: '#f59e0b', bgColor: '#fffbeb', trend: 12 },
-  { label: '本月结案', value: 24, icon: User, color: '#16a34a', bgColor: '#f0fdf4', trend: 8 }
+  { label: '危机个案总数', value: 186, icon: markRaw(Warning), color: '#ef4444', bgColor: '#fef2f2', trend: -5 },
+  { label: '处理中', value: 42, icon: markRaw(Document), color: '#1e4f9c', bgColor: '#f0f9ff' },
+  { label: '本月新增', value: 18, icon: markRaw(TrendCharts), color: '#f59e0b', bgColor: '#fffbeb', trend: 12 },
+  { label: '本月结案', value: 24, icon: markRaw(User), color: '#16a34a', bgColor: '#f0fdf4', trend: 8 }
 ])
 
 const levelDistribution = computed(() => {

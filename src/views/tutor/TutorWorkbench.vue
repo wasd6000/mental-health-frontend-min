@@ -159,6 +159,12 @@ const quickActions = [
     handler: () => router.push('/admin/tutor-assessment'),
   },
   {
+    label: '同辈互助',
+    icon: markRaw(Document),
+    color: 'linear-gradient(135deg, #ec4899, #db2777)',
+    handler: () => router.push('/admin/peer-forum'),
+  },
+  {
     label: '活动管理',
     icon: markRaw(Calendar),
     color: 'linear-gradient(135deg, #10b981, #059669)',
@@ -170,13 +176,8 @@ const quickActions = [
     color: 'linear-gradient(135deg, #f59e0b, #d97706)',
     handler: () => router.push('/admin/tutor-report'),
   },
-  {
-    label: '添加学生',
-    icon: markRaw(Plus),
-    color: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-    handler: () => router.push('/admin/tutor-students'),
-  },
 ]
+
 
 const getRiskTagType = (level) => {
   const map = { red: 'danger', orange: 'warning', yellow: '', green: 'success' }
