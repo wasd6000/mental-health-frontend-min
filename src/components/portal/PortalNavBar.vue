@@ -47,7 +47,7 @@
       <div class="actions">
         <template v-if="!isLoggedIn">
           <button type="button" class="btn-login" @click="goLogin('admin')">管理登录</button>
-          <button type="button" class="btn-login" @click="goLogin('user')">学生/家长登录</button>
+          <button type="button" class="btn-login" @click="goLogin('user')">学生登录</button>
           <button type="button" class="btn-appoint" @click="goAppointment">在线预约</button>
         </template>
 

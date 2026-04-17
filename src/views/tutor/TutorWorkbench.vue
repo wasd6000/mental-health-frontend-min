@@ -199,7 +199,7 @@ const viewStudentDetail = (student) => {
 }
 
 const viewAllTodos = () => {
-  ElMessage.info('待办事项列表功能开发中')
+  router.push('/admin/todo-list')
 }
 
 const handleTodoClick = (todo) => {

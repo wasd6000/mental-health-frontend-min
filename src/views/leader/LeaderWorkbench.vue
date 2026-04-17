@@ -27,7 +27,7 @@
       <div class="section-card">
         <div class="section-header">
           <h3>重要待办</h3>
-          <el-button type="primary" link>查看全部</el-button>
+          <el-button type="primary" link @click="$router.push('/admin/todo-list')">查看全部</el-button>
         </div>
         <div class="todo-list">
           <div class="todo-item" v-for="todo in todoList" :key="todo.id" @click="handleTodo(todo)">

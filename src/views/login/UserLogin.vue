@@ -16,44 +16,18 @@
       <div class="login-card">
         <div class="card-header">
           <h3>欢迎使用心理健康服务平台</h3>
-          <p class="subtitle">请选择身份登录</p>
-        </div>
-
-        <!-- 身份选择 -->
-        <div class="identity-select">
-          <div
-              class="identity-option"
-              :class="{ 'active': identity === 'student' }"
-              @click="identity = 'student'"
-          >
-            <div class="identity-text">
-              <div class="identity-title">学生</div>
-              <div class="identity-desc">在校学生</div>
-            </div>
-          </div>
-          <div
-              class="identity-option"
-              :class="{ 'active': identity === 'parent' }"
-              @click="identity = 'parent'"
-          >
-            <div class="identity-text">
-              <div class="identity-title">家长</div>
-              <div class="identity-desc">学生家长</div>
-            </div>
-          </div>
         </div>
 
         <!-- 登录表单 -->
         <div class="login-form">
           <div class="form-group">
             <label for="username">
-              <span v-if="identity === 'student'">学号</span>
-              <span v-else>手机号</span>
+              学号
             </label>
             <input
                 id="username"
                 v-model="form.username"
-                :placeholder="identity === 'student' ? '请输入学号' : '请输入手机号'"
+                placeholder="请输入学号"
                 type="text"
                 class="form-input"
                 @keyup.enter="login"
@@ -165,15 +139,14 @@
         <div class="modal-body">
           <div class="form-group">
             <label for="forgot-username">
-              <span v-if="identity === 'student'">学号</span>
-              <span v-else>手机号</span>
+              学号
             </label>
             <input
-              id="forgot-username"
-              v-model="forgotPasswordForm.username"
-              :placeholder="identity === 'student' ? '请输入学号' : '请输入手机号'"
-              type="text"
-              class="form-input"
+                id="forgot-username"
+                v-model="forgotPasswordForm.username"
+                placeholder="请输入学号"
+                type="text"
+                class="form-input"
             />
           </div>
           <div class="form-group">
@@ -232,15 +205,14 @@
 
           <div class="form-group">
             <label for="register-username">
-              <span v-if="identity === 'student'">学号 <span class="required">*</span></span>
-              <span v-else>手机号 <span class="required">*</span></span>
+              学号 <span class="required">*</span>
             </label>
             <input
-              id="register-username"
-              v-model="registerForm.username"
-              :placeholder="identity === 'student' ? '请输入学号' : '请输入手机号'"
-              type="text"
-              class="form-input"
+                id="register-username"
+                v-model="registerForm.username"
+                placeholder="请输入学号"
+                type="text"
+                class="form-input"
             />
           </div>
 
@@ -361,12 +333,11 @@ function goCasLogin() {
   if (!casLoginUrl.value) return
   const service = encodeURIComponent(`${window.location.origin}/cas/callback`)
   const url = casLoginUrl.value.includes('?')
-    ? `${casLoginUrl.value}&service=${service}`
-    : `${casLoginUrl.value}?service=${service}`
+      ? `${casLoginUrl.value}&service=${service}`
+      : `${casLoginUrl.value}?service=${service}`
   window.location.href = url
 }
 
-const identity = ref('student')
 const showPassword = ref(false)
 const showForgotPasswordModal = ref(false)
 
@@ -547,7 +518,7 @@ const submitRegister = async () => {
   }
 
   if (!registerForm.username) {
-    alert(`请输入${identity.value === 'student' ? '学号' : '手机号'}`)
+    alert('请输入学号')
     return
   }
 
@@ -602,7 +573,7 @@ const submitRegister = async () => {
       account: registerForm.username,
       password: registerForm.password,
       name: registerForm.real_name,
-      role: identity.value === 'student' ? 'student' : 'parent',
+      role: 'student',
       phone: registerForm.mobile,
       smsCode: registerForm.verify_code,
     })
@@ -623,7 +594,7 @@ const submitRegister = async () => {
   } catch (_) {}
 
   const registerData = {
-    role: identity.value === 'student' ? 'student' : 'parent',
+    role: 'student',
     real_name: registerForm.real_name,
     gender: parseInt(registerForm.gender),
     username: registerForm.username,
@@ -659,10 +630,6 @@ const TEST_ACCOUNTS = {
   student: {
     username: 'student',
     password: '123456',
-  },
-  parent: {
-    username: '13800138001',
-    password: '123456',
   }
 }
 
@@ -672,7 +639,7 @@ const login = async () => {
     return
   }
 
-  const role = identity.value === 'student' ? 'student' : 'parent'
+  const role = 'student'
 
   try {
     // 后端强制要求验证码校验：key（请求头）+ verificationCode（参数）

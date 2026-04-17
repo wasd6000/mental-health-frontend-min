@@ -393,7 +393,7 @@ const routes = [
           meta: { 
           needAuth: true,
           roles: ['admin', 'center', 'counselor', 'tutor']
-  }
+        }
       },
 
       {
@@ -620,6 +620,48 @@ const routes = [
       meta: { needAuth: true, roles: ['tutor', 'instructor'] }
     },
 
+    // 咨询师端路由
+    {
+      path: 'counselor-work',
+      component: () => import('../views/counselor/CounselorDashboard.vue'),
+      meta: { needAuth: true, roles: ['counselor'] }
+    },
+    {
+      path: 'consult-record-change',
+      component: () => import('../views/counselor/ConsultRecordChangeRequest.vue'),
+      meta: { needAuth: true, roles: ['counselor'] }
+    },
+    {
+      path: 'case-list',
+      component: () => import('../views/case/CaseList.vue'),
+      meta: { needAuth: true, roles: ['counselor'] }
+    },
+    {
+      path: 'crisis-list',
+      component: () => import('../views/crisis/CrisisList.vue'),
+      meta: { needAuth: true, roles: ['counselor'] }
+    },
+    {
+      path: 'leave-list',
+      component: () => import('../views/counselor/CounselorLeaveList.vue'),
+      meta: { needAuth: true, roles: ['counselor'] }
+    },
+    {
+      path: 'appointments',
+      component: () => import('../views/counselor/CounselorAppointments.vue'),
+      meta: { needAuth: true, roles: ['counselor', 'center'] }
+    },
+    {
+      path: 'assessment-list',
+      component: () => import('../views/assessment/AssessmentList.vue'),
+      meta: { needAuth: true, roles: ['counselor', 'center'] }
+    },
+    {
+      path: 'activity-manage',
+      component: () => import('../views/activity/ActivityManage.vue'),
+      meta: { needAuth: true, roles: ['counselor', 'center'] }
+    },
+
     // 院系领导端路由
     {
       path: 'college-workbench',
@@ -692,10 +734,27 @@ const routes = [
       path: 'leader-message-center',
       component: () => import('../views/message/MessageCenter.vue'),
       meta: { needAuth: true, roles: ['leader', 'school_leader'] }
+    },
+    {
+      path: 'todo-list',
+      name: 'TodoList',
+      component: () => import('../views/admin/TodoList.vue'),
+      meta: {
+        needAuth: true,
+        roles: ['tutor', 'instructor', 'college', 'college_leader', 'leader', 'school_leader', 'counselor', 'center', 'admin']
+      }
+    },
+    {
+      path: 'permission-manage',
+      name: 'PermissionManage',
+      component: () => import('../views/admin/PermissionManage.vue'),
+      meta: {
+        needAuth: true,
+        roles: ['admin']
+      }
     }
   ]
 }
-
 
 ]
 

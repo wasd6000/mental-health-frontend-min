@@ -29,6 +29,7 @@ function loadScheduleFromStorage() {
   return false
 }
 
+
 // 保存排班数据到localStorage
 function saveScheduleToStorage() {
   localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(schedule))
@@ -67,33 +68,13 @@ export function initSchedule() {
 const counselors = getCounselors()   //  统一数据来源
 
   while (day <= end) {
-    const weekDay = day.getDay();
-    if (weekDay === 0 || weekDay === 6) {
-      day.setDate(day.getDate() + 1);
-      continue;
-    }
+    // 跳过周末
+    if (weekDay === 0 || weekDay === 6) continue;
 
-    const ds = toDay(day);
-    
+    // 为每个工作日生成 7 个时段的排班
     getPeriods().forEach((time) => {
-        const counselors = getCounselors();
-        const c = counselors[Math.floor(Math.random() * counselors.length)];
-        // 自动补充咨询师的学院ID
-        let consultant_college_id = '';
-        try {
-          const consultants = JSON.parse(localStorage.getItem('MOCK_CONSULTANTS') || '[]');
-          const found = consultants.find(item => item.id === c.id);
-          if (found && found.college_id) consultant_college_id = found.college_id;
-        } catch(e) {}
-        schedule.push({
-          date: ds,
-          time,
-          counselorId: c.id,
-          counselorName: c.name,
-          consultant_college_id
-        });
-    });
-    day.setDate(day.getDate() + 1);
+      schedule.push({ date, time, counselorId, counselorName })
+    })
   }
 
   console.log('schedule size =', schedule.length)

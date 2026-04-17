@@ -42,122 +42,30 @@
     </header>
 
     <div class="main">
-
-      <!-- 左侧菜单 -->
-      <aside class="menu">
-
-        <!-- 辅导员专属菜单（支持 tutor 和 instructor 两种角色代码） -->
-        <template v-if="role === 'tutor' || role === 'instructor'">
-          <div class="item" :class="{ active: currentPath === 'tutor-workbench' }" @click="go('tutor-workbench')">工作台</div>
-          <div class="item" :class="{ active: currentPath === 'tutor-students' }" @click="go('tutor-students')">学生管理</div>
-          <div class="item" :class="{ active: currentPath === 'tutor-crisis-report' }" @click="go('tutor-crisis-report')">危机上报</div>
-          <div class="item" :class="{ active: currentPath === 'tutor-assessment' }" @click="go('tutor-assessment')">测评查看</div>
-          <div class="item" :class="{ active: currentPath === 'tutor-report' }" @click="go('tutor-report')">月报填写</div>
-          <div class="item" :class="{ active: currentPath === 'tutor-appointment' }" @click="go('tutor-appointment')">预约管理</div>
-          <div class="item" :class="{ active: currentPath === 'tutor-interview' }" @click="go('tutor-interview')">访谈管理</div>
-          <div class="item" :class="{ active: currentPath === 'tutor-conversation' }" @click="go('tutor-conversation')">谈心谈话</div>
-          <div class="item" :class="{ active: currentPath === 'tutor-parent-message' }" @click="go('tutor-parent-message')">家长留言</div>
-          <div class="item" :class="{ active: currentPath === 'tutor-message-center' }" @click="go('tutor-message-center')">消息中心</div>
-          <div class="item" :class="{ active: currentPath === 'tutor-activity-manage' }" @click="go('tutor-activity-manage')">活动管理</div>
-          <div class="item" :class="{ active: currentPath === 'peer-forum' }" @click="go('peer-forum')">朋辈互助审核</div>
+      <!-- 左侧菜单 - 完全动态生成 -->
+      <aside class="menu" v-loading="menuLoading">
+        <template v-if="sidebarMenus.length > 0">
+          <div
+            v-for="menuItem in sidebarMenus"
+            :key="menuItem.path"
+            class="item"
+            :class="{ active: currentPath === menuItem.path }"
+            @click="go(menuItem.path)"
+          >
+            {{ menuItem.label }}
+          </div>
         </template>
-
-        <!-- 院系领导专属菜单（支持 college 和 college_leader 两种角色代码） -->
-        <template v-if="role === 'college' || role === 'college_leader'">
-          <div class="item" :class="{ active: currentPath === 'college-workbench' }" @click="go('college-workbench')">工作台</div>
-          <div class="item" :class="{ active: currentPath === 'college-statistics' }" @click="go('college-statistics')">数据统计</div>
-          <div class="item" :class="{ active: currentPath === 'college-report' }" @click="go('college-report')">报表查看</div>
-          <div class="item" :class="{ active: currentPath === 'college-crisis' }" @click="go('college-crisis')">危机管理</div>
-          <div class="item" :class="{ active: currentPath === 'college-students' }" @click="go('college-students')">学生管理</div>
-          <div class="item" :class="{ active: currentPath === 'college-manage' || currentPath === 'college-tutors' }" @click="go('college-manage')">院系管理</div>
-          <div class="item" :class="{ active: currentPath === 'tutor-message-center' }" @click="go('tutor-message-center')">消息中心</div>
-          <div class="item" :class="{ active: currentPath === 'peer-forum' }" @click="go('peer-forum')">朋辈互助审核</div>
-        </template>
-
-        <!-- 校领导专属菜单（支持 leader 和 school_leader 两种角色代码） -->
-        <template v-else-if="role === 'leader' || role === 'school_leader'">
-          <div class="item" :class="{ active: currentPath === 'leader-workbench' }" @click="go('leader-workbench')">工作台</div>
-          <div class="item" :class="{ active: currentPath === 'leader-statistics' }" @click="go('leader-statistics')">数据统计</div>
-          <div class="item" :class="{ active: currentPath === 'leader-report' }" @click="go('leader-report')">报表查看</div>
-          <div class="item" :class="{ active: currentPath === 'leader-crisis' }" @click="go('leader-crisis')">危机管理</div>
-          <div class="item" :class="{ active: currentPath === 'leader-colleges' }" @click="go('leader-colleges')">院系管理</div>
-          <div class="item" :class="{ active: currentPath === 'tutor-message-center' }" @click="go('tutor-message-center')">消息中心</div>
-          <div class="item" :class="{ active: currentPath === 'peer-forum' }" @click="go('peer-forum')">朋辈互助审核</div>
-        </template>
-
-        <!-- 系统管理员专属菜单 -->
-        <template v-else-if="role === 'admin'">
-          <div class="item" :class="{ active: currentPath === 'workbench' }" @click="go('workbench')">工作台</div>
-          <div class="item" :class="{ active: currentPath === 'leave' }" @click="go('leave')">请假审批</div>
-          <div class="item" :class="{ active: currentPath === 'system-manage' }" @click="go('system-manage')">系统管理</div>
-          <div class="item" :class="{ active: currentPath === 'data-manage' }" @click="go('data-manage')">数据管理</div>
-          <div class="item" :class="{ active: currentPath === 'user-manage' }" @click="go('user-manage')">用户管理</div>
-          <div class="item" :class="{ active: currentPath === 'assessment-system' }" @click="go('assessment-system')">测评系统管理</div>
-          <div class="item" :class="{ active: currentPath === 'system-monitor' }" @click="go('system-monitor')">系统监控</div>
-          <div class="item" :class="{ active: currentPath === 'tutor-message-center' }" @click="go('tutor-message-center')">消息中心</div>
-          <div class="item" :class="{ active: currentPath === 'peer-forum' }" @click="go('peer-forum')">朋辈互助审核</div>
-        </template>
-
-        <!-- 其他角色（心理中心、咨询师）菜单 -->
-        <template v-else>
-          <div class="item" :class="{ active: currentPath === 'workbench' }" @click="go('workbench')">工作台</div>
-          <div class="item" :class="{ active: currentPath === 'time' }" @click="go('time')">预约规则配置</div>
-          <div class="item" v-if="role === 'counselor'" :class="{ active: currentPath === 'case-list' }" @click="go('case-list')">个案管理</div>
-          <div class="item" v-if="role === 'counselor'" :class="{ active: currentPath === 'crisis-list' }" @click="go('crisis-list')">危机管理</div>
-
-          <!-- 请假管理（我的申请/撤销）：仅咨询师；管理员/心理中心在侧栏「请假审批」 -->
-          <div class="item" v-if="role === 'counselor'" :class="{ active: currentPath === 'leave-list' }" @click="go('leave-list')">我的请假</div>
-
-          <!-- 测评查看/测评管理：咨询师、心理中心可见 -->
-          <div class="item" v-if="['counselor','center'].includes(role)" :class="{ active: currentPath === 'assessment-list' || currentPath.startsWith('assessment-detail/') }" @click="go('assessment-list')">测评管理</div>
-
-          <!-- 学生管理：心理中心可见 -->
-          <div class="item" v-if="role === 'center'" :class="{ active: currentPath === 'students' }" @click="go('students')">学生管理</div>
-
-          <!-- 团体活动管理：咨询师、心理中心可见（嵌套在后台布局内） -->
-          <div class="item" v-if="['counselor','center'].includes(role)" :class="{ active: currentPath === 'activity-manage' }" @click="go('activity-manage')">团体活动管理</div>
-
-          <!-- 预约管理：心理中心、咨询师可见 -->
-          <div class="item" v-if="['center','counselor'].includes(role)" :class="{ active: currentPath === 'appointments' }" @click="go('appointments')">预约管理</div>
-
-          <!-- 请假审批：心理中心；危机审批：心理中心可见 -->
-          <div class="item" v-if="role === 'center'" :class="{ active: currentPath === 'leave' }" @click="go('leave')">请假审批</div>
-          <div class="item" v-if="role === 'center'" :class="{ active: currentPath === 'crisis' }" @click="go('crisis')">危机审批</div>
-
-          <!-- 咨询师管理：心理中心 -->
-          <div class="item" v-if="role === 'center'" :class="{ active: currentPath === 'counselor' }" @click="go('counselor')">咨询师管理</div>
-
-          <!-- 智能排班：心理中心 -->
-          <div class="item" v-if="role === 'center'" :class="{ active: currentPath === 'schedule' }" @click="go('schedule')">智能排班</div>
-
-          <!-- 消息中心：心理中心、咨询师可见 -->
-          <div class="item" v-if="['center','counselor'].includes(role)" :class="{ active: currentPath === 'tutor-message-center' }" @click="go('tutor-message-center')">消息中心</div>
-
-          <!-- 朋辈互助审核：心理中心、咨询师可见 -->
-          <div class="item" v-if="['center','counselor'].includes(role)" :class="{ active: currentPath === 'peer-forum' }" @click="go('peer-forum')">朋辈互助审核</div>
-
-          <!-- 心理中心：数据统计、报表导出、系统状态监控、量表管理、访谈管理 -->
-          <div class="item" v-if="role === 'center'" :class="{ active: currentPath === 'center-statistics' }" @click="go('center-statistics')">数据统计</div>
-          <div class="item" v-if="role === 'center'" :class="{ active: currentPath === 'center-report-export' }" @click="go('center-report-export')">报表导出</div>
-          <div class="item" v-if="role === 'center'" :class="{ active: currentPath === 'center-system-monitor' }" @click="go('center-system-monitor')">系统状态监控</div>
-          <div class="item" v-if="role === 'center'" :class="{ active: currentPath === 'scale-manage' }" @click="go('scale-manage')">量表管理</div>
-          <div class="item" v-if="role === 'center'" :class="{ active: currentPath === 'interview-manage' }" @click="go('interview-manage')">访谈管理</div>
-
-          <!-- 咨询师 -->
-          <div class="item" v-if="role === 'counselor'" :class="{ active: currentPath === 'counselor-work' }" @click="go('counselor-work')">我的咨询</div>
-          <div class="item" v-if="role === 'counselor'" :class="{ active: currentPath === 'consult-record-change' }" @click="go('consult-record-change')">记录修改申请</div>
-        </template>
-
+        <div v-else-if="!menuLoading" class="empty-menu">
+          <el-empty description="暂无可用菜单" :image-size="80" />
+        </div>
       </aside>
-
 
       <!-- 右侧工作区 -->
       <section class="content">
         <div class="content-header">
-          <h2>欢迎进入 {{ roleName }} 工作台</h2>
+          <h2>{{ currentPageTitle }}</h2>
         </div>
         <div class="content-body">
-          <!-- 使用插槽内的 route，与 Component 同源，避免与 useRoute() 异步边沿不一致导致 parentNode 为 null -->
           <router-view v-slot="{ Component, route: viewRoute }">
             <component :is="Component" :key="viewRoute.fullPath" />
           </router-view>
@@ -172,26 +80,33 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getNoticeList } from '../../api/notice'
 import { clearAuthTokens } from '@/api/request'
+import { getMyPermissions } from '../../api/permissionApi.js'
+import { transformBackendMenus, flattenMenuTree } from '../../utils/menuHelper.js'
 import { ElMessage } from 'element-plus'
 import {
   Bell,
-  Odometer,
-  Clock,
-  User,
-  Calendar,
-  List,
-  Notebook,
-  EditPen,
   UserFilled,
-  CircleCheck,
-  Warning,
   SwitchButton,
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
 const unreadCount = ref(0)
+const menuLoading = ref(true)
+const sidebarMenus = ref([])
+const userPermissions = ref([])
+const userRoles = ref([])
+
 onMounted(async () => {
+  // 加载未读消息数
+  loadUnreadCount()
+
+  // 加载用户权限和动态菜单
+  await loadUserPermissionsAndMenus()
+})
+
+// 加载未读消息数
+const loadUnreadCount = async () => {
   try {
     const res = await getNoticeList({ page: 1, pageSize: 200 })
     const payload = res?.data
@@ -204,16 +119,58 @@ onMounted(async () => {
       }
     }
     unreadCount.value = Number.isFinite(total) ? total : 0
-  } catch (_) {}
-})
+  } catch (e) {
+    console.warn('加载未读消息失败:', e)
+  }
+}
 
+// 加载用户权限和动态菜单
+const loadUserPermissionsAndMenus = async () => {
+  menuLoading.value = true
+  try {
+    console.log('开始加载用户权限...')
+    const res = await getMyPermissions()
+    console.log('权限接口响应:', res)
+
+    if (res.code === 200 && res.data) {
+      // 保存用户权限和角色
+      userPermissions.value = res.data.permissions || []
+      userRoles.value = res.data.roles || []
+
+      // 转换后端返回的菜单数据
+      const backendMenus = res.data.menus || []
+      console.log('后端菜单数据:', backendMenus)
+
+      const transformedMenus = transformBackendMenus(backendMenus)
+      console.log('转换后的菜单:', transformedMenus)
+
+      // 扁平化菜单树为单层列表（用于侧边栏）
+      sidebarMenus.value = flattenMenuTree(transformedMenus)
+      console.log('侧边栏菜单:', sidebarMenus.value)
+
+      if (sidebarMenus.value.length === 0) {
+        ElMessage.warning('当前用户暂无可用菜单，请联系管理员配置权限')
+      }
+    } else {
+      console.error('获取用户权限失败:', res.message || res.msg)
+      ElMessage.error(res.message || res.msg || '获取用户权限失败')
+      sidebarMenus.value = []
+    }
+  } catch (e) {
+    console.error('加载用户权限失败:', e)
+    const errorMsg = e.response?.data?.message || e.message || '加载菜单失败'
+    ElMessage.error(errorMsg)
+    sidebarMenus.value = []
+  } finally {
+    menuLoading.value = false
+    console.log('菜单加载完成，当前菜单数量:', sidebarMenus.value.length)
+  }
+}
+
+// 用户信息
 const userId = ref(localStorage.getItem('user_id'))
-
-// 优先从 admin_role 获取，其次 user_role（兼容 instructor 和 tutor）
 const roleValue = localStorage.getItem('admin_role') || localStorage.getItem('user_role') || ''
 const role = ref(roleValue)
-const admin_role = localStorage.getItem('admin_role')
-const admin_token = localStorage.getItem('admin_token')
 
 const roleMap = {
   admin: '管理员',
@@ -226,6 +183,7 @@ const roleMap = {
   tutor: '辅导员',
   instructor: '辅导员',
 }
+
 const roleName = computed(() => roleMap[role.value] || '用户')
 
 const userName = computed(() => {
@@ -235,6 +193,13 @@ const userName = computed(() => {
       '用户'
 })
 
+// 当前页面标题
+const currentPageTitle = computed(() => {
+  const currentMenu = sidebarMenus.value.find(m => m.path === currentPath.value)
+  return currentMenu ? `${currentMenu.label} - ${roleName.value}` : `${roleName.value}工作台`
+})
+
+// 退出登录
 function handleLogout() {
   clearAuthTokens()
 
@@ -259,30 +224,20 @@ function handleLogout() {
 
 const showOrg = ref(true)
 
+// 当前路径
 const currentPath = computed(() => {
   const p = route.path
   if (p.startsWith('/admin/')) return p.replace('/admin/', '') || 'workbench'
   return 'workbench'
 })
 
-const menuEntries = computed(() => [
-  { path: 'workbench', label: '工作台', icon: Odometer, show: true },
-  { path: 'time', label: '心理咨询时间规则', icon: Clock, show: true },
-  { path: 'counselor', label: '咨询师管理', icon: User, show: role.value === 'center' },
-  { path: 'schedule', label: '智能排班', icon: Calendar, show: role.value === 'center' },
-  { path: 'counselor-work', label: '我的咨询', icon: List, show: role.value === 'counselor' },
-  { path: 'consult-record-change', label: '记录修改申请', icon: EditPen, show: role.value === 'counselor' },
-  { path: 'activity-manage', label: '团体活动管理', icon: Calendar, show: role.value === 'counselor' || role.value === 'center' },
-  { path: 'appointments', label: '预约管理', icon: Calendar, show: role.value === 'counselor' || role.value === 'center' },
-  { path: 'consult-records', label: '咨询记录', icon: Notebook, show: role.value === 'counselor' },
-  { path: 'students', label: '学生管理', icon: UserFilled, show: role.value === 'admin' || role.value === 'center' },
-  { path: 'leave', label: '请假审批', icon: CircleCheck, show: role.value === 'center' || role.value === 'admin' },
-  { path: 'crisis', label: '危机审批', icon: Warning, show: true },
-])
-
+// 路由跳转
 function go(page) {
   const path = `/admin/${String(page).replace(/^\//, '')}`
-  router.push(path)
+  router.push(path).catch(err => {
+    console.error('路由跳转失败:', err)
+    ElMessage.error('页面不存在或无权限访问')
+  })
 }
 
 function goHome() {
@@ -290,10 +245,8 @@ function goHome() {
 }
 
 function goToMessageCenter() {
-  // 所有管理角色统一跳转到消息中心
   const targetPath = '/admin/tutor-message-center'
 
-  // 如果已经在消息中心页面，刷新页面
   if (route.path === targetPath) {
     window.location.reload()
     return
@@ -304,15 +257,8 @@ function goToMessageCenter() {
     ElMessage.error('跳转失败，请重试')
   })
 }
-
-function isExternalActive(path) {
-  const p = route.path
-  if (path === '/case') return p === '/case' || p.startsWith('/case/')
-  if (path === '/crisis') return p.startsWith('/crisis')
-  if (path === '/assessment/list') return p.startsWith('/assessment/list') || p.startsWith('/assessment/detail')
-  return p === path || p.startsWith(path + '/')
-}
 </script>
+
 
 <style scoped>
 .admin {
@@ -433,10 +379,6 @@ function isExternalActive(path) {
   transform: translateY(-1px);
 }
 
-.logout-btn .el-icon {
-  font-size: 16px;
-}
-
 .nav-item {
   display: inline-flex;
   align-items: center;
@@ -451,7 +393,6 @@ function isExternalActive(path) {
 .nav-item:hover {
   background: rgba(255, 255, 255, 0.15);
 }
-
 
 .message-link {
   color: inherit;
@@ -476,58 +417,46 @@ function isExternalActive(path) {
 .menu {
   width: 220px;
   background: #fff;
-  padding: 12px 8px;
-  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.04);
   border-right: 1px solid #e2e8f0;
+  padding: 16px 0;
+  overflow-y: auto;
 }
 
-.item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  margin-bottom: 4px;
-  border-radius: 10px;
+.menu .item {
+  padding: 12px 24px;
   cursor: pointer;
-  color: #475569;
   font-size: 14px;
-  transition: background 0.2s, color 0.2s;
+  color: #475569;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
 }
 
-.item:hover {
-  background: #f1f5f9;
+.menu .item:hover {
+  background: #f8fafc;
   color: #1e4f9c;
 }
 
-.item.active {
-  background: linear-gradient(90deg, rgba(30, 79, 156, 0.12) 0%, transparent 100%);
+.menu .item.active {
+  background: #eff6ff;
   color: #1e4f9c;
+  border-left-color: #1e4f9c;
   font-weight: 600;
-  border-left: 3px solid #1e4f9c;
-  padding-left: 11px;
 }
 
-.item-icon {
-  font-size: 18px;
-  flex-shrink: 0;
-}
-
-.item-text {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.empty-menu {
+  padding: 40px 20px;
+  text-align: center;
 }
 
 .content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  background: #f8fafc;
 }
 
 .content-header {
-  padding: 20px 24px 12px;
+  padding: 20px 32px;
   background: #fff;
   border-bottom: 1px solid #e2e8f0;
 }
@@ -541,7 +470,7 @@ function isExternalActive(path) {
 
 .content-body {
   flex: 1;
-  padding: 24px;
-  overflow: auto;
+  padding: 24px 32px;
+  overflow-y: auto;
 }
 </style>

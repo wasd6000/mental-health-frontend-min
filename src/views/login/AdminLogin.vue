@@ -267,30 +267,18 @@ const login = async () => {
 
       ElMessage.success('登录成功')
 
-      // 根据角色跳转到对应的工作台
-      const role = localStorage.getItem('admin_role') || 'admin'
-      const roleRoutes = {
-        admin: '/admin/workbench',
-        center: '/admin/center-statistics',
-        counselor: '/admin/counselor-work',
-        tutor: '/admin/tutor-workbench',
-        instructor: '/admin/tutor-workbench',
-        college: '/admin/college-workbench',
-        college_leader: '/admin/college-workbench',
-        leader: '/admin/leader-workbench',
-        school_leader: '/admin/leader-workbench',
-      }
-
-      const redirectPath = roleRoutes[role] || '/admin/workbench'
-      router.push(redirectPath)
-    } else {
-      throw new Error(apiRes?.msg || '登录失败')
+      const redirectPath =
+          router.currentRoute.value.query.redirect ||
+          '/admin/workbench'
+      await router.push(redirectPath)
+      return
     }
-  } catch (err) {
-    console.error('登录失败:', err)
-    ElMessage.error(err.message || '登录失败，请检查账号密码')
-    // 刷新验证码
+
+    throw new Error(apiRes?.msg || '登录失败')
+  } catch (e) {
+    console.log('接口登录失败:', e)
     await loadCaptcha()
+    ElMessage.error(e?.message || '登录失败')
   } finally {
     loading.value = false
   }
