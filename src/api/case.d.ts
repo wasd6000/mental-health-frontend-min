@@ -9,5 +9,7 @@ export interface CaseParams {
 
 export function getCounselorCases(params?: CaseParams): Promise<any>
 export function getCaseDetail(id: string): Promise<any>
+export function fetchCaseDetail(id: string): Promise<any>
 export function createCase(data: any): Promise<any>
-export function updateCase(id: string, data: any): Promise<any>
+export function updateCase(data: any): Promise<any>
+export function fetchCaseStats(params?: Record<string, any>): Promise<any[]>

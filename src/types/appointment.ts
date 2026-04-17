@@ -21,6 +21,7 @@ export type AppointmentStatus =
 export interface Appointment {
   timeline: any;
   id: string; // 主键
+  scheduleId?: string; // 排班ID（后端 submit 必填）
   studentId: string; // 学生ID
   counselorId: string; // 咨询师ID
   date: string; // 预约日期

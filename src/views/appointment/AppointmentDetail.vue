@@ -186,6 +186,11 @@ const handleRenew = async () => {
     ElMessage.error('只有咨询师可执行该操作')
     return
   }
+  const scheduleId = appointment.value.scheduleId
+  if (!scheduleId) {
+    ElMessage.error('续约失败：当前预约缺少排班ID（scheduleId）')
+    return
+  }
   // 创建下周同一时间的预约
   const date = new Date(appointment.value.date)
   date.setDate(date.getDate() + 7)
@@ -193,6 +198,7 @@ const handleRenew = async () => {
 
   try {
     const res = await createAppointmentForStudentAsync({
+      scheduleId,
       studentId: appointment.value.studentId,
       counselorId: appointment.value.counselorId,
       counselorName: appointment.value.counselorName || '',

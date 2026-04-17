@@ -9,10 +9,43 @@ import { unwrapPageResult } from './psychPlatformAppointment.js'
 
 /**
  * 提交请假申请
- * POST /api/counselor/leave/apply
+ * 兼容两套后端实现：
+ * - 咨询师：POST /api/counselor/leave/apply（需 counselorId）
+ * - 其它：POST /api/leave/apply（LeaveApplyDTO）
  */
 export function submitLeave(data) {
-  return request.post('/api/counselor/leave/apply', data)
+  const role =
+    (typeof localStorage !== 'undefined' &&
+      (localStorage.getItem('admin_role') || localStorage.getItem('user_role'))) ||
+    ''
+
+  // 兼容当前后端：/api/leave/apply 在咨询师场景会走 counselor_info.user_id 查询，库表不存在该列时会 500
+  if (String(role).toLowerCase() === 'counselor') {
+    const counselorId =
+      (typeof localStorage !== 'undefined' &&
+        (localStorage.getItem('userId') ||
+          localStorage.getItem('user_id') ||
+          localStorage.getItem('counselorId') ||
+          localStorage.getItem('counselor_id'))) ||
+      ''
+
+    return request.post('/api/counselor/leave/apply', {
+      counselorId,
+      leaveType: data?.leaveType,
+      reason: data?.reason,
+      startTime: data?.startTime,
+      endTime: data?.endTime,
+      leaveDate: data?.leaveDate,
+    })
+  }
+
+  return request.post('/api/leave/apply', {
+    leaveType: data?.leaveType,
+    reason: data?.reason,
+    startTime: data?.startTime,
+    endTime: data?.endTime,
+    leaveDate: data?.leaveDate,
+  })
 }
 
 /**

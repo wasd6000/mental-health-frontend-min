@@ -112,18 +112,32 @@ export function createAppointmentAsync(data: {
 
 // 重新导出 createAppointmentForStudentAsync 以支持一键续约
 export function createAppointmentForStudentAsync(data: {
+  scheduleId?: string
   studentId: string
   counselorId: string
   counselorName: string
-  appointmentDate: string
-  create_time: string
-  update_time: string
+  appointmentDate?: string
+  date?: string
+  create_time?: string
+  update_time?: string
+  end_time?: string
+  appointmentType?: string
+  consultationMode?: string
+  location?: string
+  isUrgent?: number
+  notes?: string
 }) {
   if (appointmentMock) {
     return studentMock.createAppointmentForStudent(data)
   }
+  const sid = (data as any).scheduleId
+  if (!sid) {
+    return Promise.reject(
+      new Error('未传 scheduleId：一键续约需携带当前预约的 scheduleId'),
+    )
+  }
   const body: Record<string, unknown> = {
-    scheduleId: (data as any).scheduleId,
+    scheduleId: sid,
     appointmentType: (data as any).appointmentType || 'INDIVIDUAL',
     consultationMode: (data as any).consultationMode || 'OFFLINE',
     location: (data as any).location || '',

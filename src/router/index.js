@@ -20,12 +20,6 @@ const routes = [
   meta: { needAuth: true, roles: ['counselor','center','admin'] }
 },
 {
-  path: '/case/:id/operate',
-  name: 'CaseOperate',
-  component: () => import('../views/case/CaseOperate.vue'),
-  meta: { needAuth: true, roles: ['counselor','center','admin'] }
-},
-{
   path: '/case/stats',
   name: 'CaseStats',
   component: () => import('../views/case/CaseStats.vue'),
