@@ -8,15 +8,40 @@
       </div>
     </div>
     <el-card class="form-card" shadow="never">
-      <el-form :model="form" label-width="100px">
-        <el-form-item label="活动名称">
-          <el-input v-model="form.name" placeholder="请输入活动名称" />
+      <el-form :model="form" label-width="120px">
+        <el-form-item label="活动名称" required>
+          <el-input v-model="form.name" placeholder="请输入活动名称" maxlength="100" show-word-limit />
         </el-form-item>
-        <el-form-item label="活动时间">
-          <el-date-picker v-model="form.date" type="date" placeholder="请选择活动时间" style="width: 100%" />
+        <el-form-item label="活动时间" required>
+          <el-date-picker
+            v-model="form.date"
+            type="date"
+            placeholder="请选择活动时间"
+            style="width: 100%"
+            value-format="YYYY-MM-DD"
+          />
+        </el-form-item>
+        <el-form-item label="活动地点">
+          <el-input v-model="form.location" placeholder="请输入活动地点（可选）" maxlength="200" />
+        </el-form-item>
+        <el-form-item label="最大参与人数">
+          <el-input-number
+            v-model="form.maxParticipants"
+            :min="1"
+            :max="999"
+            placeholder="请输入最大参与人数（可选）"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="活动描述">
-          <el-input v-model="form.desc" type="textarea" :rows="4" placeholder="请输入活动描述" />
+          <el-input
+            v-model="form.description"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入活动描述（可选）"
+            maxlength="500"
+            show-word-limit
+          />
         </el-form-item>
         <el-form-item>
           <el-button @click="cancel">取消</el-button>
@@ -27,28 +52,56 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref } from 'vue'
+<script setup lang="ts">import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
+import { createActivity } from '../../api/activity'
 
 const router = useRouter()
-const form = ref({ name: '', date: '', desc: '' })
+const form = ref({
+  name: '',
+  date: '',
+  location: '',
+  maxParticipants: undefined as number | undefined,
+  description: ''
+})
 const submitting = ref(false)
 
 function cancel() {
   router.push('/admin/activity-manage')
 }
 
-function submit() {
+async function submit() {
   if (!form.value.name?.trim()) {
     ElMessage.warning('请填写活动名称')
     return
   }
+  if (!form.value.date) {
+    ElMessage.warning('请选择活动时间')
+    return
+  }
+
   submitting.value = true
   try {
-    ElMessage.info('当前 psychological_platform 未提供活动创建接口，请到数据库或运营后台维护团体活动数据。')
+    const res: any = await createActivity({
+      name: form.value.name.trim(),
+      date: form.value.date,
+      location: form.value.location?.trim() || undefined,
+      maxParticipants: form.value.maxParticipants,
+      description: form.value.description?.trim() || undefined,
+    })
+
+    if (res?.code === 200) {
+      ElMessage.success('活动创建成功')
+      router.push('/admin/activity-manage')
+    } else {
+      ElMessage.error(res?.msg || '活动创建失败')
+    }
+  } catch (error: any) {
+    console.error('创建活动失败:', error)
+    const errorMsg = error?.response?.data?.msg || error?.message || '活动创建失败，请稍后重试'
+    ElMessage.error(errorMsg)
   } finally {
     submitting.value = false
   }
