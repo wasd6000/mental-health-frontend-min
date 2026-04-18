@@ -88,7 +88,7 @@
 
 <script setup>import { ref, reactive, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Refresh } from '@element-plus/icons-vue'
 import {
   getInterviewTasks,
   createInterviewTask,
@@ -98,8 +98,13 @@ import {
 const activeTab = ref('task')
 const taskList = ref([])
 const recordList = ref([])
+const counselorList = ref([])
 const taskDialogVisible = ref(false)
 const loading = ref(false)
+
+const recordFilter = reactive({
+  keyword: ''
+})
 
 const taskForm = reactive({
   title: '',

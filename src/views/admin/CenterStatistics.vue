@@ -67,7 +67,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, markRaw } from 'vue'
 import { Refresh, User, Document, Warning, Calendar } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
@@ -81,10 +81,10 @@ import {
 
 const dateRange = ref([])
 const overviewData = ref([
-  { label: '本月咨询量', value: 0, icon: User, color: '#2563eb' },
-  { label: '测评完成数', value: 0, icon: Document, color: '#7c3aed' },
-  { label: '危机个案数', value: 0, icon: Warning, color: '#dc2626' },
-  { label: '预约总数', value: 0, icon: Calendar, color: '#059669' },
+  { label: '本月咨询量', value: 0, icon: markRaw(User), color: '#2563eb' },
+  { label: '测评完成数', value: 0, icon: markRaw(Document), color: '#7c3aed' },
+  { label: '危机个案数', value: 0, icon: markRaw(Warning), color: '#dc2626' },
+  { label: '预约总数', value: 0, icon: markRaw(Calendar), color: '#059669' },
 ])
 
 const consultTrendRef = ref(null)
@@ -94,8 +94,21 @@ const slotDistRef = ref(null)
 let charts = []
 const loading = ref(false)
 
+// 保存 resize 处理函数引用，用于正确移除监听器
+const handleResize = () => {
+  charts.forEach((c) => {
+    if (c && !c.isDisposed()) {
+      c.resize()
+    }
+  })
+}
+
 function initCharts() {
-  charts.forEach((c) => c?.dispose())
+  charts.forEach((c) => {
+    if (c && !c.isDisposed()) {
+      c.dispose()
+    }
+  })
   charts = []
 
   if (consultTrendRef.value) {
@@ -148,6 +161,7 @@ function initCharts() {
 
 async function loadData() {
   loading.value = true
+
   try {
     const params = {}
     if (dateRange.value && dateRange.value.length === 2) {
@@ -155,7 +169,7 @@ async function loadData() {
       params.endDate = dateRange.value[1]
     }
 
-    // 并行加载所有统计数据
+    // 并行加载所有统计数据（API层已做降级处理）
     const [overviewRes, trendRes, rateRes, crisisRes, slotRes] = await Promise.all([
       getStatsOverview(params),
       getConsultTrend(params),
@@ -167,10 +181,10 @@ async function loadData() {
     // 更新概览数据
     if (overviewRes?.code === 200 && overviewRes.data) {
       overviewData.value = [
-        { label: '本月咨询量', value: overviewRes.data.consultCount || 0, icon: User, color: '#2563eb' },
-        { label: '测评完成数', value: overviewRes.data.assessmentCount || 0, icon: Document, color: '#7c3aed' },
-        { label: '危机个案数', value: overviewRes.data.crisisCount || 0, icon: Warning, color: '#dc2626' },
-        { label: '预约总数', value: overviewRes.data.appointmentCount || 0, icon: Calendar, color: '#059669' },
+        { label: '本月咨询量', value: overviewRes.data.consultCount || 0, icon: markRaw(User), color: '#2563eb' },
+        { label: '测评完成数', value: overviewRes.data.assessmentCount || 0, icon: markRaw(Document), color: '#7c3aed' },
+        { label: '危机个案数', value: overviewRes.data.crisisCount || 0, icon: markRaw(Warning), color: '#dc2626' },
+        { label: '预约总数', value: overviewRes.data.appointmentCount || 0, icon: markRaw(Calendar), color: '#059669' },
       ]
     }
 
@@ -199,10 +213,13 @@ async function loadData() {
     // 更新危机分布图
     if (crisisRes?.code === 200 && crisisRes.data && crisisDistRef.value) {
       const chart = charts[2]
+      const levels = Array.isArray(crisisRes.data.levels) ? crisisRes.data.levels : []
+      const values = Array.isArray(crisisRes.data.values) ? crisisRes.data.values : []
+
       chart?.setOption({
-        xAxis: { data: crisisRes.data.levels || [] },
+        xAxis: { data: levels },
         series: [{
-          data: crisisRes.data.values || [],
+          data: values,
           itemStyle: {
             color: (params) => ['#dc2626', '#f59e0b', '#22c55e'][params.dataIndex],
           },
@@ -213,14 +230,17 @@ async function loadData() {
     // 更新时段分布图
     if (slotRes?.code === 200 && slotRes.data && slotDistRef.value) {
       const chart = charts[3]
+      const slots = Array.isArray(slotRes.data.slots) ? slotRes.data.slots : []
+      const values = Array.isArray(slotRes.data.values) ? slotRes.data.values : []
+
       chart?.setOption({
-        xAxis: { data: slotRes.data.slots || [] },
-        series: [{ data: slotRes.data.values || [] }],
+        xAxis: { data: slots },
+        series: [{ data: values }],
       })
     }
   } catch (e) {
-    console.error('加载统计数据失败:', e)
-    ElMessage.error('加载数据失败，请稍后重试')
+    ElMessage.error('统计数据加载失败')
+    console.error('统计数据加载异常:', e)
   } finally {
     loading.value = false
   }
@@ -229,13 +249,19 @@ async function loadData() {
 onMounted(() => {
   initCharts()
   loadData()
-  window.addEventListener('resize', () => charts.forEach((c) => c?.resize()))
+  window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('resize', () => {})
-  charts.forEach((c) => c?.dispose())
+  window.removeEventListener('resize', handleResize)
+  charts.forEach((c) => {
+    if (c && !c.isDisposed()) {
+      c.dispose()
+    }
+  })
+  charts = []
 })
+
 </script>
 
 

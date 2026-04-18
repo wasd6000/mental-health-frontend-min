@@ -387,19 +387,28 @@ const loadPermissionList = async () => {
       params.type = permSearch.type
     }
 
-    console.log('请求参数:', params) // 调试日志
+    console.log('🔍 请求参数:', params)
 
     const res = await getPermissionList(params)
-    console.log('响应数据:', res) // 调试日志
+
+    console.log('✅ 响应数据:', res)
 
     if (res.code === 200 && res.data) {
       permissionList.value = res.data.list || []
       permPagination.total = res.data.total || 0
-      console.log('权限列表:', permissionList.value.length, '条，总数:', permPagination.total)
+      console.log('✨ 加载成功:', permissionList.value.length, '条')
+    } else {
+      console.warn('⚠️ 响应异常:', res)
+      ElMessage.warning(res.message || '加载失败')
     }
   } catch (e) {
-    console.error('加载权限列表失败:', e)
-    ElMessage.error('加载权限列表失败')
+    console.error('❌ 加载失败详情:')
+    console.error('  - 状态码:', e.response?.status)
+    console.error('  - 错误信息:', e.response?.data?.message || e.message)
+    console.error('  - 完整响应:', e.response?.data)
+
+    const errorMsg = e.response?.data?.message || e.response?.data?.error || '服务器内部错误'
+    ElMessage.error('加载权限列表失败：' + errorMsg)
   } finally {
     permLoading.value = false
   }

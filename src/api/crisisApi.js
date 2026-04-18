@@ -169,6 +169,28 @@ export function addCrisisIntervention(data) {
   return request.post('/api/crisis/intervention/add', data)
 }
 
+/**
+ * 获取危机干预记录列表
+ * GET /api/crisis/intervention/list
+ */
+export async function getCrisisInterventionList(crisisId, params = {}) {
+  const query = {
+    crisisId,
+    page: params.page ?? 1,
+    pageSize: params.pageSize ?? 50,
+  }
+
+  const res = await request.get('/api/crisis/intervention/list', { params: query })
+  const { total, records } = unwrapPageResult(res)
+  return {
+    ...res,
+    data: {
+      list: records || [],
+      total: Number(total) || 0,
+    },
+  }
+}
+
 export function updateCrisisRecord(data) {
   return request.post('/api/crisis/update-record', data)
 }
@@ -183,4 +205,44 @@ export function rejectCrisisReport(data) {
 
 export function getLeaderCrisisApprovalList(params) {
   return request.get('/api/center/approval/crisis/list', { params })
+}
+
+/**
+ * 获取危机统计数据
+ * GET /api/admin/crisis/statistics
+ */
+export function getCrisisStatistics() {
+  return request.get('/api/admin/crisis/statistics')
+}
+
+/**
+ * 获取月度趋势数据
+ * GET /api/admin/crisis/trend?months=6
+ */
+export function getCrisisTrend(months = 6) {
+  return request.get('/api/admin/crisis/trend', { params: { months } })
+}
+
+/**
+ * 获取危机等级分布
+ * GET /api/admin/crisis/level-distribution
+ */
+export function getCrisisLevelDistribution() {
+  return request.get('/api/admin/crisis/level-distribution')
+}
+
+/**
+ * 获取危机类型分布
+ * GET /api/admin/crisis/type-distribution
+ */
+export function getCrisisTypeDistribution() {
+  return request.get('/api/admin/crisis/type-distribution')
+}
+
+/**
+ * 获取各学院危机数量分布
+ * GET /api/admin/crisis/college-distribution
+ */
+export function getCrisisCollegeDistribution() {
+  return request.get('/api/admin/crisis/college-distribution')
 }

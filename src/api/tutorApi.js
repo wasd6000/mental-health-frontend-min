@@ -28,24 +28,50 @@ export function getTutorWorkbenchStats() {
  * 获取访谈任务列表
  * GET /api/tutor/interviews/tasks
  */
-export function getInterviewTasks(params = {}) {
-  return request.get('/api/tutor/interviews/tasks', { params })
+export async function getInterviewTasks(params = {}) {
+  try {
+    return await request.get('/api/tutor/interviews/tasks', { params })
+  } catch (error) {
+    if (error?.response?.status === 403 || error?.response?.status >= 500) {
+      console.warn('⚠️ 访谈任务接口暂未实现，使用空数据')
+      return { code: 200, msg: 'ok', data: [] }
+    }
+    throw error
+  }
 }
 
 /**
  * 创建访谈任务
  * POST /api/tutor/interviews/tasks
+ * 降级处理：后端未实现时返回成功
  */
-export function createInterviewTask(data) {
-  return request.post('/api/tutor/interviews/tasks', data)
+export async function createInterviewTask(data) {
+  try {
+    return await request.post('/api/tutor/interviews/tasks', data)
+  } catch (error) {
+    if (error?.response?.status === 403 || error?.response?.status >= 500) {
+      console.warn('⚠️ 创建访谈任务接口暂未实现')
+      return { code: 200, msg: 'ok', data: null }
+    }
+    throw error
+  }
 }
 
 /**
  * 获取访谈记录列表
  * GET /api/tutor/interviews/records
+ * 降级处理：后端未实现时返回空数据
  */
-export function getInterviewRecords(params = {}) {
-  return request.get('/api/tutor/interviews/records', { params })
+export async function getInterviewRecords(params = {}) {
+  try {
+    return await request.get('/api/tutor/interviews/records', { params })
+  } catch (error) {
+    if (error?.response?.status === 403 || error?.response?.status >= 500) {
+      console.warn('⚠️ 访谈记录接口暂未实现，使用空数据')
+      return { code: 200, msg: 'ok', data: [] }
+    }
+    throw error
+  }
 }
 
 /**

@@ -294,11 +294,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick, defineAsyncComponent } from 'vue'
+import { ref, onMounted, watch, nextTick, defineAsyncComponent, markRaw } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Bell, Warning, User, Document, TrendCharts, Timer, ArrowLeft } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
-import { getCrisisList, approveCrisisReport, rejectCrisisReport } from '../../api/crisisApi'
+import {
+  getCrisisList,
+  approveCrisisReport,
+  rejectCrisisReport,
+  getLeaderCrisisApprovalList,
+  getCrisisStatistics,
+  getCrisisTrend,
+  getCrisisLevelDistribution,
+  getCrisisTypeDistribution,
+  getCrisisCollegeDistribution
+} from '../../api/crisisApi'
 import { CRISIS_LEVELS, CRISIS_STATUS, getLevelConfig, getStatusConfig } from '../../types/crisis'
 
 const CrisisDetailPanel = defineAsyncComponent(() => import('./components/CrisisDetailPanel.vue'))
@@ -307,7 +317,7 @@ const activeTab = ref('pending')
 const loading = ref(false)
 const submitting = ref(false)
 
-const pendingCount = ref(5)
+const pendingCount = ref(0)
 const pendingList = ref([])
 const processingList = ref([])
 const closedList = ref([])
@@ -342,10 +352,10 @@ const teamMembers = ref([
 ])
 
 const statsData = ref([
-  { label: '待审批', value: 5, icon: Timer, type: 'warning' },
-  { label: '处理中', value: 42, icon: Document, type: 'primary' },
-  { label: '本月新增', value: 18, icon: Warning, type: 'danger' },
-  { label: '本月结案', value: 24, icon: User, type: 'success' }
+  { label: '待审批', value: 0, icon: markRaw(Timer), type: 'warning' },
+  { label: '处理中', value: 0, icon: markRaw(Document), type: 'primary' },
+  { label: '本月新增', value: 0, icon: markRaw(Warning), type: 'danger' },
+  { label: '本月结案', value: 0, icon: markRaw(User), type: 'success' }
 ])
 
 const trendChartRef = ref()
@@ -354,190 +364,232 @@ const typeChartRef = ref()
 const collegeChartRef = ref()
 let charts = []
 
+// 加载统计数据
+const loadStatistics = async () => {
+  try {
+    const res = await getCrisisStatistics()
+    if (res.code === 200 && res.data) {
+      statsData.value = [
+        { label: '待审批', value: res.data.pendingCount || 0, icon: markRaw(Timer), type: 'warning' },
+        { label: '处理中', value: res.data.processingCount || 0, icon: markRaw(Document), type: 'primary' },
+        { label: '本月新增', value: res.data.monthNewCount || 0, icon: markRaw(Warning), type: 'danger' },
+        { label: '本月结案', value: res.data.monthClosedCount || 0, icon: markRaw(User), type: 'success' }
+      ]
+      pendingCount.value = res.data.pendingCount || 0
+    }
+  } catch (e) {
+    console.error('加载统计数据失败:', e)
+  }
+}
+
 const loadPendingList = async () => {
   loading.value = true
   try {
-    const res = await getCrisisList({ status: 'pending' })
-    if (res.code === 200) {
-      pendingList.value = res.data || []
+    let res
+    try {
+      // 首先尝试使用审批接口
+      res = await getLeaderCrisisApprovalList({ status: 'pending', page: 1, pageSize: 100 })
+    } catch (approvalError) {
+      // 如果审批接口无权限（403），降级使用普通危机列表接口
+      console.warn('审批接口无权限，降级使用普通列表接口')
+      res = await getCrisisList({ status: 'pending', page: 1, pageSize: 100 })
+    }
+
+    if (res.code === 200 && res.data) {
+      pendingList.value = res.data.list || res.data.records || []
       pendingCount.value = pendingList.value.length
+    } else {
+      pendingList.value = []
+      pendingCount.value = 0
     }
   } catch (e) {
-    pendingList.value = [
-      {
-        id: '1',
-        caseNo: 'CR2024031801',
-        level: 'red',
-        typeLabel: '自杀倾向',
-        isEmergency: true,
-        studentInfo: { name: '张明华', studentId: '2022001001', college: '计算机学院', className: '计科2201' },
-        description: '学生近期情绪极度低落，有轻生念头，室友发现其手臂有自伤痕迹。学生表示学业压力大，与家人关系紧张。',
-        reporterName: '李辅导员',
-        reporterRole: '辅导员',
-        reportTime: '2024-03-18 08:30',
-        discoverTime: '2024-03-18 07:45'
-      },
-      {
-        id: '2',
-        caseNo: 'CR2024031802',
-        level: 'orange',
-        typeLabel: '严重抑郁',
-        isEmergency: false,
-        studentInfo: { name: '王小红', studentId: '2022001002', college: '文学院', className: '汉语2201' },
-        description: '心理测评结果显示重度抑郁，学生情绪持续低落，经常独处，对周围事物缺乏兴趣。',
-        reporterName: '班主任',
-        reporterRole: '班主任',
-        reportTime: '2024-03-18 10:15',
-        discoverTime: '2024-03-17 15:00'
-      }
-    ]
-    pendingCount.value = pendingList.value.length
+    console.error('加载待审批列表失败:', e)
+    const errorMsg = e.response?.status === 403
+        ? '当前用户无审批权限'
+        : '加载待审批列表失败'
+    ElMessage.warning(errorMsg)
+    pendingList.value = []
+    pendingCount.value = 0
+  } finally {
+    loading.value = false
   }
-  loading.value = false
 }
 
 const loadProcessingList = async () => {
   loading.value = true
   try {
-    const res = await getCrisisList({ status: 'processing' })
-    if (res.code === 200) {
-      processingList.value = res.data || []
+    const res = await getCrisisList({ status: 'processing', page: 1, pageSize: 100 })
+    if (res.code === 200 && res.data) {
+      processingList.value = res.data.list || res.data.records || []
     }
   } catch (e) {
-    processingList.value = [
-      {
-        id: '3',
-        caseNo: 'CR2024031503',
-        level: 'orange',
-        status: 'intervening',
-        typeLabel: '严重焦虑',
-        studentInfo: { name: '李建国', studentId: '2022001003', college: '理学院' },
-        interventionTeam: [{ id: '1', name: '王心理' }, { id: '2', name: '李辅导员' }],
-        lastInterventionTime: '2024-03-17 16:00'
-      },
-      {
-        id: '4',
-        caseNo: 'CR2024031004',
-        level: 'yellow',
-        status: 'tracking',
-        typeLabel: '情绪困扰',
-        studentInfo: { name: '赵小梅', studentId: '2022001004', college: '外语学院' },
-        interventionTeam: [{ id: '3', name: '张主任' }],
-        lastInterventionTime: '2024-03-16 10:30'
-      }
-    ]
+    console.error('加载处理中列表失败:', e)
+    ElMessage.error('加载处理中列表失败')
+    processingList.value = []
+  } finally {
+    loading.value = false
   }
-  loading.value = false
 }
 
 const loadClosedList = async () => {
   loading.value = true
   try {
-    const res = await getCrisisList({
-      startDate: closedDateRange.value?.[0],
-      endDate: closedDateRange.value?.[1],
-      level: closedLevel.value,
-      status: 'closed'
-    })
-    if (res.code === 200) {
-      closedList.value = res.data || []
+    const params = {
+      status: 'closed',
+      page: 1,
+      pageSize: 100
+    }
+
+    if (closedDateRange.value?.[0]) {
+      params.startDate = closedDateRange.value[0]
+    }
+    if (closedDateRange.value?.[1]) {
+      params.endDate = closedDateRange.value[1]
+    }
+    if (closedLevel.value) {
+      params.level = closedLevel.value
+    }
+
+    const res = await getCrisisList(params)
+    if (res.code === 200 && res.data) {
+      closedList.value = res.data.list || res.data.records || []
     }
   } catch (e) {
-    closedList.value = [
-      {
-        id: '5',
-        caseNo: 'CR2024020105',
-        level: 'yellow',
-        typeLabel: '学业焦虑',
-        studentInfo: { name: '钱大明', college: '经管学院' },
-        processDays: 12,
-        closeReason: '经过多次心理咨询，学生情绪明显好转，能够正常学习生活',
-        closeTime: '2024-02-28'
-      }
-    ]
+    console.error('加载已结案列表失败:', e)
+    ElMessage.error('加载已结案列表失败')
+    closedList.value = []
+  } finally {
+    loading.value = false
   }
-  loading.value = false
 }
 
-const initCharts = () => {
+const initCharts = async () => {
   charts.forEach(c => c?.dispose())
   charts = []
 
+  // 加载趋势图数据
   if (trendChartRef.value) {
-    const chart = echarts.init(trendChartRef.value)
-    chart.setOption({
-      tooltip: { trigger: 'axis' },
-      legend: { data: ['新增', '结案'] },
-      xAxis: { type: 'category', data: ['1月', '2月', '3月', '4月', '5月', '6月'] },
-      yAxis: { type: 'value' },
-      series: [
-        { name: '新增', type: 'bar', data: [15, 12, 18, 14, 20, 18], itemStyle: { color: '#f59e0b' } },
-        { name: '结案', type: 'bar', data: [12, 14, 16, 15, 18, 24], itemStyle: { color: '#10b981' } }
-      ]
-    })
-    charts.push(chart)
+    try {
+      const res = await getCrisisTrend(6)
+      if (res.code === 200 && res.data && Array.isArray(res.data)) {
+        const chart = echarts.init(trendChartRef.value)
+        chart.setOption({
+          tooltip: { trigger: 'axis' },
+          legend: { data: ['新增', '结案'] },
+          xAxis: {
+            type: 'category',
+            data: res.data.map(item => item.month)
+          },
+          yAxis: { type: 'value' },
+          series: [
+            {
+              name: '新增',
+              type: 'bar',
+              data: res.data.map(item => item.newCount),
+              itemStyle: { color: '#f59e0b' }
+            },
+            {
+              name: '结案',
+              type: 'bar',
+              data: res.data.map(item => item.closedCount),
+              itemStyle: { color: '#10b981' }
+            }
+          ]
+        })
+        charts.push(chart)
+      }
+    } catch (e) {
+      console.error('加载趋势图数据失败:', e)
+    }
   }
 
+  // 加载等级分布图数据
   if (levelChartRef.value) {
-    const chart = echarts.init(levelChartRef.value)
-    chart.setOption({
-      tooltip: { trigger: 'item' },
-      series: [{
-        type: 'pie',
-        radius: ['45%', '70%'],
-        data: [
-          { value: 12, name: '极高危', itemStyle: { color: '#dc2626' } },
-          { value: 38, name: '高危', itemStyle: { color: '#f59e0b' } },
-          { value: 86, name: '中危', itemStyle: { color: '#eab308' } },
-          { value: 50, name: '关注', itemStyle: { color: '#3b82f6' } }
-        ],
-        label: { formatter: '{b}: {c}人' }
-      }]
-    })
-    charts.push(chart)
-  }
-
-  if (typeChartRef.value) {
-    const chart = echarts.init(typeChartRef.value)
-    chart.setOption({
-      tooltip: { trigger: 'item' },
-      series: [{
-        type: 'pie',
-        radius: '65%',
-        data: [
-          { value: 28, name: '自杀倾向', itemStyle: { color: '#dc2626' } },
-          { value: 35, name: '自伤行为', itemStyle: { color: '#f97316' } },
-          { value: 52, name: '严重抑郁', itemStyle: { color: '#8b5cf6' } },
-          { value: 45, name: '严重焦虑', itemStyle: { color: '#3b82f6' } },
-          { value: 26, name: '其他', itemStyle: { color: '#94a3b8' } }
-        ]
-      }]
-    })
-    charts.push(chart)
-  }
-
-  if (collegeChartRef.value) {
-    const chart = echarts.init(collegeChartRef.value)
-    chart.setOption({
-      tooltip: { trigger: 'axis' },
-      xAxis: {
-        type: 'category',
-        data: ['计算机', '理学院', '外语', '文学院', '经管', '机械', '电信', '艺术'],
-        axisLabel: { rotate: 30 }
-      },
-      yAxis: { type: 'value' },
-      series: [{
-        type: 'bar',
-        data: [27, 22, 18, 15, 32, 24, 26, 12],
-        itemStyle: {
-          color: (params) => {
-            const colors = ['#dc2626', '#f59e0b', '#eab308', '#3b82f6', '#dc2626', '#f59e0b', '#eab308', '#3b82f6']
-            return colors[params.dataIndex % colors.length]
-          }
+    try {
+      const res = await getCrisisLevelDistribution()
+      if (res.code === 200 && res.data && Array.isArray(res.data)) {
+        const chart = echarts.init(levelChartRef.value)
+        const colors = {
+          red: '#dc2626',
+          orange: '#f59e0b',
+          yellow: '#eab308',
+          blue: '#3b82f6',
+          green: '#10b981'
         }
-      }]
-    })
-    charts.push(chart)
+        chart.setOption({
+          tooltip: { trigger: 'item' },
+          series: [{
+            type: 'pie',
+            radius: ['45%', '70%'],
+            data: res.data.map(item => ({
+              value: item.count,
+              name: item.levelName,
+              itemStyle: { color: colors[item.level] || '#94a3b8' }
+            })),
+            label: { formatter: '{b}: {c}人' }
+          }]
+        })
+        charts.push(chart)
+      }
+    } catch (e) {
+      console.error('加载等级分布图数据失败:', e)
+    }
+  }
+
+  // 加载类型分布图数据
+  if (typeChartRef.value) {
+    try {
+      const res = await getCrisisTypeDistribution()
+      if (res.code === 200 && res.data && Array.isArray(res.data)) {
+        const chart = echarts.init(typeChartRef.value)
+        const colors = ['#dc2626', '#f97316', '#8b5cf6', '#3b82f6', '#94a3b8']
+        chart.setOption({
+          tooltip: { trigger: 'item' },
+          series: [{
+            type: 'pie',
+            radius: '65%',
+            data: res.data.map((item, index) => ({
+              value: item.count,
+              name: item.typeName,
+              itemStyle: { color: colors[index % colors.length] }
+            }))
+          }]
+        })
+        charts.push(chart)
+      }
+    } catch (e) {
+      console.error('加载类型分布图数据失败:', e)
+    }
+  }
+
+  // 加载学院分布图数据
+  if (collegeChartRef.value) {
+    try {
+      const res = await getCrisisCollegeDistribution()
+      if (res.code === 200 && res.data && Array.isArray(res.data)) {
+        const chart = echarts.init(collegeChartRef.value)
+        const colors = ['#dc2626', '#f59e0b', '#eab308', '#3b82f6']
+        chart.setOption({
+          tooltip: { trigger: 'axis' },
+          xAxis: {
+            type: 'category',
+            data: res.data.map(item => item.college),
+            axisLabel: { rotate: 30 }
+          },
+          yAxis: { type: 'value' },
+          series: [{
+            type: 'bar',
+            data: res.data.map(item => item.count),
+            itemStyle: {
+              color: (params) => colors[params.dataIndex % colors.length]
+            }
+          }]
+        })
+        charts.push(chart)
+      }
+    } catch (e) {
+      console.error('加载学院分布图数据失败:', e)
+    }
   }
 }
 
@@ -651,6 +703,7 @@ watch(activeTab, (val) => {
 })
 
 onMounted(() => {
+  loadStatistics()
   loadPendingList()
 })
 </script>
@@ -985,6 +1038,8 @@ onMounted(() => {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+  --level-color: #e2e8f0;
+  --level-bg: transparent;
 }
 
 .level-option:hover {

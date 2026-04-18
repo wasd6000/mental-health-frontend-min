@@ -198,3 +198,74 @@ export async function deleteMessagesMock(messageIds) {
   })
   return Promise.resolve({ code: 200, message: '删除成功' })
 }
+
+/**
+ * 私信接口（新增）
+ */
+
+/**
+ * 获取私信列表
+ * GET /api/message/private
+ */
+export async function getPrivateMessages(params = {}) {
+  const query = {
+    page: params.page ?? 1,
+    pageSize: params.pageSize ?? 20,
+    type: params.type || 'received', // received | sent
+  }
+
+  const res = await request.get('/api/message/private', { params: query })
+  const data = res.data || {}
+  const list = data.list || data.records || []
+  const total = data.total || list.length
+
+  return {
+    ...res,
+    data: {
+      list,
+      total: Number(total) || 0,
+    },
+  }
+}
+
+/**
+ * 发送私信
+ * POST /api/message/private/send
+ */
+export function sendPrivateMessage(data) {
+  return request.post('/api/message/private/send', {
+    receiverId: data.receiverId,
+    receiverName: data.receiverName,
+    content: data.content,
+    attachmentUrl: data.attachmentUrl,
+  })
+}
+
+/**
+ * 标记私信为已读
+ * POST /api/message/private/:id/read
+ */
+export function markPrivateMessageRead(messageId) {
+  return request.post(`/api/message/private/${messageId}/read`)
+}
+
+/**
+ * 删除私信
+ * DELETE /api/message/private/:id
+ */
+export function deletePrivateMessage(messageId) {
+  return request.delete(`/api/message/private/${messageId}`)
+}
+
+/**
+ * 获取联系人列表（用于选择收件人）
+ * GET /api/message/contacts
+ */
+export async function getContactList(keyword = '') {
+  const res = await request.get('/api/message/contacts', {
+    params: { keyword },
+  })
+  const data = res.data || {}
+  const list = data.list || data.records || []
+  return list
+}

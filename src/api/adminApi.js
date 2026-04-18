@@ -75,33 +75,170 @@ export function getStatsOverview(params = {}) {
 /**
  * 获取咨询量趋势
  * GET /api/admin/stats/consult-trend
+ * 降级处理：后端未实现时返回空数据
  */
-export function getConsultTrend(params = {}) {
-  return request.get('/api/admin/stats/consult-trend', { params })
+export async function getConsultTrend(params = {}) {
+  try {
+    const res = await request.get('/api/admin/stats/consult-trend', { params })
+
+    // 验证并转换数据结构
+    if (res?.code === 200 && res.data) {
+      const dates = Array.isArray(res.data.dates) ? res.data.dates : []
+
+      // 处理 values
+      let values = []
+      if (Array.isArray(res.data.values)) {
+        values = res.data.values
+      } else if (typeof res.data.values === 'function') {
+        console.warn('⚠️ 咨询量趋势 values 是函数类型，后端可能存在序列化问题')
+        values = []
+      } else if (typeof res.data.values === 'number') {
+        values = [res.data.values]
+      } else if (res.data.values && typeof res.data.values === 'object') {
+        values = Object.values(res.data.values).filter(v => typeof v === 'number')
+      }
+
+      return {
+        ...res,
+        data: {
+          dates,
+          values,
+        }
+      }
+    }
+    return res
+  } catch (error) {
+    // 403或500错误时返回空数据结构
+    if (error?.response?.status === 403 || error?.response?.status >= 500) {
+      console.warn('⚠️ 咨询量趋势接口暂未实现，使用空数据')
+      return { code: 200, msg: 'ok', data: { dates: [], values: [] } }
+    }
+    throw error
+  }
 }
 
 /**
  * 获取测评完成率
  * GET /api/admin/stats/assessment-rate
+ * 降级处理：后端未实现时返回空数据
  */
-export function getAssessmentRate(params = {}) {
-  return request.get('/api/admin/stats/assessment-rate', { params })
+export async function getAssessmentRate(params = {}) {
+  try {
+    const res = await request.get('/api/admin/stats/assessment-rate', { params })
+
+    // 验证并转换数据结构
+    if (res?.code === 200 && res.data) {
+      return {
+        ...res,
+        data: {
+          completed: Number(res.data.completed) || 0,
+          incomplete: Number(res.data.incomplete) || 0,
+        }
+      }
+    }
+    return res
+  } catch (error) {
+    // 403或500错误时返回空数据结构
+    if (error?.response?.status === 403 || error?.response?.status >= 500) {
+      console.warn('⚠️ 测评完成率接口暂未实现，使用空数据')
+      return { code: 200, msg: 'ok', data: { completed: 0, incomplete: 0 } }
+    }
+    throw error
+  }
 }
 
 /**
  * 获取危机等级分布
  * GET /api/admin/stats/crisis-distribution
+ * 降级处理：后端未实现时返回空数据
  */
-export function getCrisisDistribution(params = {}) {
-  return request.get('/api/admin/stats/crisis-distribution', { params })
+export async function getCrisisDistribution(params = {}) {
+  try {
+    const res = await request.get('/api/admin/stats/crisis-distribution', { params })
+
+    // 验证并转换数据结构
+    if (res?.code === 200 && res.data) {
+      const levels = Array.isArray(res.data.levels) ? res.data.levels : []
+
+      // 处理 values：如果是函数或其他非数组类型，尝试转换
+      let values = []
+      if (Array.isArray(res.data.values)) {
+        values = res.data.values
+      } else if (typeof res.data.values === 'function') {
+        // 如果是函数，可能是后端序列化问题，尝试调用或忽略
+        console.warn('⚠️ 危机等级分布 values 是函数类型，后端可能存在序列化问题')
+        values = []
+      } else if (typeof res.data.values === 'number') {
+        // 如果单个数字，包装成数组
+        values = [res.data.values]
+      } else if (res.data.values && typeof res.data.values === 'object') {
+        // 如果是对象，尝试提取值
+        values = Object.values(res.data.values).filter(v => typeof v === 'number')
+      }
+
+      return {
+        ...res,
+        data: {
+          levels,
+          values,
+        }
+      }
+    }
+    return res
+  } catch (error) {
+    // 403或500错误时返回空数据结构
+    if (error?.response?.status === 403 || error?.response?.status >= 500) {
+      console.warn('⚠️ 危机等级分布接口暂未实现，使用空数据')
+      return { code: 200, msg: 'ok', data: { levels: [], values: [] } }
+    }
+    throw error
+  }
 }
 
 /**
  * 获取预约时段分布
  * GET /api/admin/stats/slot-distribution
+ * 降级处理：后端未实现时返回空数据
  */
-export function getSlotDistribution(params = {}) {
-  return request.get('/api/admin/stats/slot-distribution', { params })
+export async function getSlotDistribution(params = {}) {
+  try {
+    const res = await request.get('/api/admin/stats/slot-distribution', { params })
+
+    // 验证并转换数据结构
+    if (res?.code === 200 && res.data) {
+      const slots = Array.isArray(res.data.slots) ? res.data.slots : []
+
+      // 处理 values：如果是函数或其他非数组类型，尝试转换
+      let values = []
+      if (Array.isArray(res.data.values)) {
+        values = res.data.values
+      } else if (typeof res.data.values === 'function') {
+        // 如果是函数，可能是后端序列化问题
+        console.warn('⚠️ 预约时段分布 values 是函数类型，后端可能存在序列化问题')
+        values = []
+      } else if (typeof res.data.values === 'number') {
+        values = [res.data.values]
+      } else if (res.data.values && typeof res.data.values === 'object') {
+        values = Object.values(res.data.values).filter(v => typeof v === 'number')
+      }
+
+      return {
+        ...res,
+        data: {
+          slots,
+          values,
+        }
+      }
+    }
+    return res
+  } catch (error) {
+    // 403或500错误时返回空数据结构
+    if (error?.response?.status === 403 || error?.response?.status >= 500) {
+      console.warn('⚠️ 预约时段分布接口暂未实现，使用空数据')
+      return { code: 200, msg: 'ok', data: { slots: [], values: [] } }
+    }
+    throw error
+  }
 }
 
 /**

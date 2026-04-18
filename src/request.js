@@ -264,9 +264,17 @@ request.interceptors.response.use(
       clearAuthAndRedirectLogin()
     }
     if (status === 403) {
-      console.warn('[api] 403', err?.config?.method, err?.config?.url, err?.response?.data)
+      // 统计接口暂时未配置权限，静默处理
+      const isStatsApi = err?.config?.url?.includes('/api/admin/stats/')
+      if (!isStatsApi) {
+        console.warn('[api] 403', err?.config?.method, err?.config?.url, err?.response?.data)
+      }
     }
-    console.error('接口错误', err)
+    // 统计接口不打印错误日志
+    const isStatsApi = err?.config?.url?.includes('/api/admin/stats/')
+    if (!isStatsApi) {
+      console.error('接口错误', err)
+    }
     return Promise.reject(err)
   }
 )

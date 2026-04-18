@@ -158,7 +158,7 @@ import {
   getMyActivities,
   joinActivity,
   cancelActivity,
-} from '../../api/activity.js'
+} from '../../api/activity'
 
 // 解析分页数据的辅助函数
 function parseActivityPage(res: any) {
