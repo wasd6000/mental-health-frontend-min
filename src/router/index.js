@@ -295,6 +295,8 @@ const routes = [
     { path: 'self-help/music-therapy', name: 'MusicTherapy', component: () => import('../views/student/selfHelp/MusicTherapy.vue') },
     { path: 'self-help/health-course', name: 'HealthCourse', component: () => import('../views/student/selfHelp/HealthCourse.vue') },
     { path: 'self-help', name: 'SelfHelp', component: () => import('../views/student/selfHelp/SelfHelp.vue') },
+    { path: 'wiki', name: 'StudentWiki', component: () => import('../views/student/StudentWiki.vue') },
+    { path: 'notices', name: 'StudentNotices', component: () => import('../views/student/StudentNotices.vue') },
   ]
 },
 {

@@ -9,14 +9,15 @@
         </div>
       </div>
       <nav class="top-links">
-        <router-link to="/" class="link-pill">门户首页</router-link>
-        <router-link to="/wiki" class="link-pill">心理百科</router-link>
-        <router-link to="/notices" class="link-pill">通知公告</router-link>
+        <router-link to="/" class="link-pill" target="_blank">门户首页</router-link>
+        <router-link to="/student/wiki" class="link-pill">心理百科</router-link>
+        <router-link to="/student/notices" class="link-pill">通知公告</router-link>
       </nav>
       <div class="top-right">
         <router-link to="/message" class="msg-link">
           <el-icon><Bell /></el-icon>
           <span>消息</span>
+          <span v-if="unreadCount > 0" class="unread-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
         </router-link>
         <span class="user-name">{{ displayName }}</span>
         <button type="button" class="logout-btn" @click="logout">退出</button>
@@ -43,16 +44,36 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Bell } from '@element-plus/icons-vue'
+import { getUnreadCount } from '@/api/message'
 
 const router = useRouter()
 const route = useRoute()
+const unreadCount = ref(0)
 
 const displayName = computed(
   () => localStorage.getItem('user_name') || localStorage.getItem('User_name') || '同学'
 )
+
+// 加载未读消息数
+const loadUnreadCount = async () => {
+  try {
+    const res = await getUnreadCount()
+    if (res.code === 200 && res.data) {
+      unreadCount.value = res.data.totalUnread || 0
+    }
+  } catch (e) {
+    console.warn('加载未读消息失败:', e)
+  }
+}
+
+onMounted(() => {
+  loadUnreadCount()
+  // 每分钟刷新一次
+  setInterval(loadUnreadCount, 60000)
+})
 
 const menuItems = [
   { label: '工作台', path: '/student/dashboard', match: (p) => p === '/student/dashboard' },
@@ -163,6 +184,7 @@ function logout() {
   padding: 6px 12px;
   border-radius: 8px;
   transition: background 0.2s;
+  cursor: pointer;
 }
 
 .link-pill:hover {
@@ -190,10 +212,21 @@ function logout() {
   font-size: 13px;
   padding: 6px 10px;
   border-radius: 8px;
+  position: relative;
 }
 
 .msg-link:hover {
   background: rgba(255, 255, 255, 0.12);
+}
+
+.unread-badge {
+  background: #ef4444;
+  color: #fff;
+  padding: 1px 5px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 2px;
 }
 
 .user-name {

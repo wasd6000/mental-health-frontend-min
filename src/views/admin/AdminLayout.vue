@@ -20,11 +20,6 @@
           <span>消息</span>
           <span v-if="unreadCount > 0" class="unread-badge">{{ unreadCount }}</span>
         </span>
-        <span class="nav-item">基础信息</span>
-        <span class="nav-item">教育管理</span>
-        <span class="nav-item">日常管理</span>
-        <span class="nav-item">心理健康管理</span>
-        <span class="nav-item">资助管理</span>
 
         <!-- 用户信息和退出 -->
         <div class="user-section">
