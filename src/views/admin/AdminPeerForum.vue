@@ -106,8 +106,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { adminListPendingPosts, adminReviewPost, adminListReports, adminHandleReport } from '@/api/peerForum'
-import type { ForumPost, ForumReport } from '@/types/peerForum'
+import { adminListPendingPosts, adminReviewPost, adminListReports, adminHandleReport } from '@/api/peerForumApi.js'
+import type { ForumPost, ForumReport } from '@/types/peerForum.js'
 
 const router = useRouter()
 const activeTab = ref<'pending' | 'reports'>('pending')

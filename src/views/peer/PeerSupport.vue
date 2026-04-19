@@ -223,8 +223,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { listPosts, createPost } from '@/api/peerForumApi'
-import type { ForumPost, ForumSort } from '@/types/peerForum'
+import { listPosts, createPost } from '@/api/peerForumApi.js'
+import type { ForumPost, ForumSort } from '@/types/peerForum.js'
 import {
   Search, ArrowRight, Document, Link, ChatDotRound,
   Star, Sunny, UserFilled, Menu, Phone, Location, Calendar,

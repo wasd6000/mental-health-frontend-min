@@ -18,35 +18,48 @@ import type {
  * GET /api/peer-forum/posts
  */
 export async function listPosts(params: ListPostsParams = {}): Promise<PagedResult<ForumPost>> {
-  const query: Record<string, any> = {
-    page: params.page ?? 1,
-    pageSize: params.pageSize ?? 10,
-  }
+  try {
+    const query: Record<string, any> = {
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? 10,
+    }
 
-  if (params.keyword) {
-    query.keyword = params.keyword
-  }
-  if (params.category) {
-    query.category = params.category
-  }
-  if (params.tag) {
-    query.tag = params.tag
-  }
-  if (params.sort) {
-    query.sort = params.sort
-  }
-  if (params.status) {
-    query.status = params.status
-  }
+    if (params.keyword) {
+      query.keyword = params.keyword
+    }
+    if (params.category) {
+      query.category = params.category
+    }
+    if (params.tag) {
+      query.tag = params.tag
+    }
+    if (params.sort) {
+      query.sort = params.sort
+    }
+    if (params.status) {
+      query.status = params.status
+    }
 
-  const res = await request.get('/api/peer-forum/posts', { params: query })
-  const { total, records } = unwrapPageResult(res)
+    const res = await request.get('/api/peer-forum/posts', { params: query })
+    const { total, records } = unwrapPageResult(res)
 
-  return {
-    list: records || [],
-    total: Number(total) || 0,
-    page: query.page,
-    pageSize: query.pageSize,
+    return {
+      list: records || [],
+      total: Number(total) || 0,
+      page: query.page,
+      pageSize: query.pageSize,
+    }
+  } catch (error: any) {
+    if (error?.response?.status === 403 || error?.response?.status >= 500) {
+      console.warn('⚠️ 朋辈互助帖子列表接口暂未实现，使用空数据')
+      return {
+        list: [],
+        total: 0,
+        page: params.page ?? 1,
+        pageSize: params.pageSize ?? 10,
+      }
+    }
+    throw error
   }
 }
 
@@ -58,7 +71,11 @@ export async function getPostDetail(id: string): Promise<ForumPost | null> {
   try {
     const res = await request.get(`/api/peer-forum/post/${id}`)
     return res.data || null
-  } catch (e) {
+  } catch (e: any) {
+    if (e?.response?.status === 403 || e?.response?.status >= 500) {
+      console.warn('⚠️ 帖子详情接口暂未实现')
+      return null
+    }
     console.error('获取帖子详情失败:', e)
     return null
   }
@@ -75,15 +92,23 @@ export async function createPost(payload: {
   tags?: string[]
   isAnonymous?: boolean
 }): Promise<ForumPost> {
-  const res = await request.post('/api/peer-forum/post', {
-    title: payload.title.trim(),
-    content: payload.content.trim(),
-    category: payload.category || '话题讨论',
-    tags: Array.isArray(payload.tags) ? payload.tags.filter(Boolean).slice(0, 10) : [],
-    isAnonymous: !!payload.isAnonymous,
-  })
+  try {
+    const res = await request.post('/api/peer-forum/post', {
+      title: payload.title.trim(),
+      content: payload.content.trim(),
+      category: payload.category || '话题讨论',
+      tags: Array.isArray(payload.tags) ? payload.tags.filter(Boolean).slice(0, 10) : [],
+      isAnonymous: !!payload.isAnonymous,
+    })
 
-  return res.data
+    return res.data
+  } catch (error: any) {
+    if (error?.response?.status === 403 || error?.response?.status >= 500) {
+      console.warn('⚠️ 创建帖子接口暂未实现')
+      throw new Error('创建帖子功能暂未开放，请稍后再试')
+    }
+    throw error
+  }
 }
 
 /**
@@ -94,19 +119,32 @@ export async function listReplies(
   postId: string,
   params: { page?: number; pageSize?: number } = {}
 ): Promise<PagedResult<ForumReply>> {
-  const query = {
-    page: params.page ?? 1,
-    pageSize: params.pageSize ?? 20,
-  }
+  try {
+    const query = {
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? 20,
+    }
 
-  const res = await request.get(`/api/peer-forum/post/${postId}/replies`, { params: query })
-  const { total, records } = unwrapPageResult(res)
+    const res = await request.get(`/api/peer-forum/post/${postId}/replies`, { params: query })
+    const { total, records } = unwrapPageResult(res)
 
-  return {
-    list: records || [],
-    total: Number(total) || 0,
-    page: query.page,
-    pageSize: query.pageSize,
+    return {
+      list: records || [],
+      total: Number(total) || 0,
+      page: query.page,
+      pageSize: query.pageSize,
+    }
+  } catch (error: any) {
+    if (error?.response?.status === 403 || error?.response?.status >= 500) {
+      console.warn('⚠️ 回复列表接口暂未实现，使用空数据')
+      return {
+        list: [],
+        total: 0,
+        page: params.page ?? 1,
+        pageSize: params.pageSize ?? 20,
+      }
+    }
+    throw error
   }
 }
 
@@ -118,13 +156,21 @@ export async function createReply(
   postId: string,
   payload: { content: string; isAnonymous?: boolean; replyToReplyId?: string }
 ): Promise<ForumReply> {
-  const res = await request.post(`/api/peer-forum/post/${postId}/reply`, {
-    content: payload.content.trim(),
-    isAnonymous: !!payload.isAnonymous,
-    replyToReplyId: payload.replyToReplyId,
-  })
+  try {
+    const res = await request.post(`/api/peer-forum/post/${postId}/reply`, {
+      content: payload.content.trim(),
+      isAnonymous: !!payload.isAnonymous,
+      replyToReplyId: payload.replyToReplyId,
+    })
 
-  return res.data
+    return res.data
+  } catch (error: any) {
+    if (error?.response?.status === 403 || error?.response?.status >= 500) {
+      console.warn('⚠️ 创建回复接口暂未实现')
+      throw new Error('回复功能暂未开放，请稍后再试')
+    }
+    throw error
+  }
 }
 
 /**
@@ -132,8 +178,16 @@ export async function createReply(
  * POST /api/peer-forum/post/:postId/like
  */
 export async function toggleLike(postId: string): Promise<{ liked: boolean; likeCount: number }> {
-  const res = await request.post(`/api/peer-forum/post/${postId}/like`)
-  return res.data
+  try {
+    const res = await request.post(`/api/peer-forum/post/${postId}/like`)
+    return res.data
+  } catch (error: any) {
+    if (error?.response?.status === 403 || error?.response?.status >= 500) {
+      console.warn('⚠️ 点赞接口暂未实现')
+      throw new Error('点赞功能暂未开放')
+    }
+    throw error
+  }
 }
 
 /**
@@ -141,8 +195,16 @@ export async function toggleLike(postId: string): Promise<{ liked: boolean; like
  * POST /api/peer-forum/post/:postId/collect
  */
 export async function toggleCollect(postId: string): Promise<{ collected: boolean; collectCount: number }> {
-  const res = await request.post(`/api/peer-forum/post/${postId}/collect`)
-  return res.data
+  try {
+    const res = await request.post(`/api/peer-forum/post/${postId}/collect`)
+    return res.data
+  } catch (error: any) {
+    if (error?.response?.status === 403 || error?.response?.status >= 500) {
+      console.warn('⚠️ 收藏接口暂未实现')
+      throw new Error('收藏功能暂未开放')
+    }
+    throw error
+  }
 }
 
 /**
@@ -156,8 +218,16 @@ export async function createReport(payload: {
   reason: string
   detail?: string
 }): Promise<ForumReport> {
-  const res = await request.post('/api/peer-forum/report', payload)
-  return res.data
+  try {
+    const res = await request.post('/api/peer-forum/report', payload)
+    return res.data
+  } catch (error: any) {
+    if (error?.response?.status === 403 || error?.response?.status >= 500) {
+      console.warn('⚠️ 举报接口暂未实现')
+      throw new Error('举报功能暂未开放')
+    }
+    throw error
+  }
 }
 
 /**
@@ -168,12 +238,20 @@ export async function adminReviewPost(
   id: string,
   payload: { action: 'approve' | 'reject'; comment?: string }
 ) {
-  const res = await request.post('/api/peer-forum/admin/review', {
-    postId: id,
-    action: payload.action,
-    comment: payload.comment,
-  })
-  return res.data
+  try {
+    const res = await request.post('/api/peer-forum/admin/review', {
+      postId: id,
+      action: payload.action,
+      comment: payload.comment,
+    })
+    return res.data
+  } catch (error: any) {
+    if (error?.response?.status === 403 || error?.response?.status >= 500) {
+      console.warn('⚠️ 审核帖子接口暂未实现')
+      throw new Error('审核功能暂未开放')
+    }
+    throw error
+  }
 }
 
 /**
@@ -181,11 +259,19 @@ export async function adminReviewPost(
  * POST /api/peer-forum/admin/set-top
  */
 export async function adminSetTop(id: string, value: boolean) {
-  const res = await request.post('/api/peer-forum/admin/set-top', {
-    postId: id,
-    isTop: value,
-  })
-  return res.data
+  try {
+    const res = await request.post('/api/peer-forum/admin/set-top', {
+      postId: id,
+      isTop: value,
+    })
+    return res.data
+  } catch (error: any) {
+    if (error?.response?.status === 403 || error?.response?.status >= 500) {
+      console.warn('⚠️ 置顶接口暂未实现')
+      throw new Error('置顶功能暂未开放')
+    }
+    throw error
+  }
 }
 
 /**
@@ -193,11 +279,19 @@ export async function adminSetTop(id: string, value: boolean) {
  * POST /api/peer-forum/admin/set-essence
  */
 export async function adminSetEssence(id: string, value: boolean) {
-  const res = await request.post('/api/peer-forum/admin/set-essence', {
-    postId: id,
-    isEssence: value,
-  })
-  return res.data
+  try {
+    const res = await request.post('/api/peer-forum/admin/set-essence', {
+      postId: id,
+      isEssence: value,
+    })
+    return res.data
+  } catch (error: any) {
+    if (error?.response?.status === 403 || error?.response?.status >= 500) {
+      console.warn('⚠️ 加精接口暂未实现')
+      throw new Error('加精功能暂未开放')
+    }
+    throw error
+  }
 }
 
 /**
@@ -205,8 +299,16 @@ export async function adminSetEssence(id: string, value: boolean) {
  * DELETE /api/peer-forum/admin/post/:id
  */
 export async function adminDeletePost(id: string) {
-  await request.delete(`/api/peer-forum/admin/post/${id}`)
-  return { ok: true }
+  try {
+    await request.delete(`/api/peer-forum/admin/post/${id}`)
+    return { ok: true }
+  } catch (error: any) {
+    if (error?.response?.status === 403 || error?.response?.status >= 500) {
+      console.warn('⚠️ 删除帖子接口暂未实现')
+      throw new Error('删除功能暂未开放')
+    }
+    throw error
+  }
 }
 
 /**
@@ -214,8 +316,16 @@ export async function adminDeletePost(id: string) {
  * DELETE /api/peer-forum/admin/reply/:id
  */
 export async function adminDeleteReply(id: string) {
-  await request.delete(`/api/peer-forum/admin/reply/${id}`)
-  return { ok: true }
+  try {
+    await request.delete(`/api/peer-forum/admin/reply/${id}`)
+    return { ok: true }
+  } catch (error: any) {
+    if (error?.response?.status === 403 || error?.response?.status >= 500) {
+      console.warn('⚠️ 删除回复接口暂未实现')
+      throw new Error('删除回复功能暂未开放')
+    }
+    throw error
+  }
 }
 
 /**
@@ -225,19 +335,32 @@ export async function adminDeleteReply(id: string) {
 export async function adminListPendingPosts(
   params: { page?: number; pageSize?: number } = {}
 ): Promise<PagedResult<ForumPost>> {
-  const query = {
-    page: params.page ?? 1,
-    pageSize: params.pageSize ?? 10,
-  }
+  try {
+    const query = {
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? 10,
+    }
 
-  const res = await request.get('/api/peer-forum/admin/pending', { params: query })
-  const { total, records } = unwrapPageResult(res)
+    const res = await request.get('/api/peer-forum/admin/pending', { params: query })
+    const { total, records } = unwrapPageResult(res)
 
-  return {
-    list: records || [],
-    total: Number(total) || 0,
-    page: query.page,
-    pageSize: query.pageSize,
+    return {
+      list: records || [],
+      total: Number(total) || 0,
+      page: query.page,
+      pageSize: query.pageSize,
+    }
+  } catch (error: any) {
+    if (error?.response?.status === 403 || error?.response?.status >= 500) {
+      console.warn('⚠️ 待审核列表接口暂未实现，使用空数据')
+      return {
+        list: [],
+        total: 0,
+        page: params.page ?? 1,
+        pageSize: params.pageSize ?? 10,
+      }
+    }
+    throw error
   }
 }
 
@@ -248,23 +371,36 @@ export async function adminListPendingPosts(
 export async function adminListReports(
     params: { page?: number; pageSize?: number; status?: 'pending' | 'handled' | 'all' } = {}
 ): Promise<PagedResult<ForumReport>> {
-  const query: Record<string, any> = {
-    page: params.page ?? 1,
-    pageSize: params.pageSize ?? 10,
-  }
+  try {
+    const query: Record<string, any> = {
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? 10,
+    }
 
-  if (params.status) {
-    query.status = params.status
-  }
+    if (params.status) {
+      query.status = params.status
+    }
 
-  const res = await request.get('/api/peer-forum/admin/reports', { params: query })
-  const { total, records } = unwrapPageResult(res)
+    const res = await request.get('/api/peer-forum/admin/reports', { params: query })
+    const { total, records } = unwrapPageResult(res)
 
-  return {
-    list: records || [],
-    total: Number(total) || 0,
-    page: query.page,
-    pageSize: query.pageSize,
+    return {
+      list: records || [],
+      total: Number(total) || 0,
+      page: query.page,
+      pageSize: query.pageSize,
+    }
+  } catch (error: any) {
+    if (error?.response?.status === 403 || error?.response?.status >= 500) {
+      console.warn('⚠️ 举报列表接口暂未实现，使用空数据')
+      return {
+        list: [],
+        total: 0,
+        page: params.page ?? 1,
+        pageSize: params.pageSize ?? 10,
+      }
+    }
+    throw error
   }
 }
 
@@ -273,9 +409,17 @@ export async function adminListReports(
  * POST /api/peer-forum/admin/handle-report
  */
 export async function adminHandleReport(id: string, payload: { handled: boolean }) {
-  const res = await request.post('/api/peer-forum/admin/handle-report', {
-    reportId: id,
-    handled: payload.handled,
-  })
-  return res.data
+  try {
+    const res = await request.post('/api/peer-forum/admin/handle-report', {
+      reportId: id,
+      handled: payload.handled,
+    })
+    return res.data
+  } catch (error: any) {
+    if (error?.response?.status === 403 || error?.response?.status >= 500) {
+      console.warn('⚠️ 处理举报接口暂未实现')
+      throw new Error('处理举报功能暂未开放')
+    }
+    throw error
+  }
 }

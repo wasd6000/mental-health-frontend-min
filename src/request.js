@@ -252,31 +252,36 @@ request.interceptors.response.use(
     }
     return body
   },
-  (err) => {
-    if (isDev && err && err.code === 'ERR_NETWORK') {
-      return Promise.resolve(buildDevFallback(err))
-    }
-    const status = err?.response?.status
-    if (isDev && status >= 500) {
-      return Promise.resolve(buildDevFallback(err))
-    }
-    if (status === 401) {
-      clearAuthAndRedirectLogin()
-    }
-    if (status === 403) {
-      // 统计接口暂时未配置权限，静默处理
+    (err) => {
+      if (isDev && err && err.code === 'ERR_NETWORK') {
+        return Promise.resolve(buildDevFallback(err))
+      }
+      const status = err?.response?.status
+      if (isDev && status >= 500) {
+        return Promise.resolve(buildDevFallback(err))
+      }
+      if (status === 401) {
+        clearAuthAndRedirectLogin()
+      }
+
+      // 统计接口、朋辈互助接口、辅导员访谈接口暂时未配置权限，返回降级数据
       const isStatsApi = err?.config?.url?.includes('/api/admin/stats/')
-      if (!isStatsApi) {
+      const isPeerForumApi = err?.config?.url?.includes('/api/peer-forum/')
+      const isTutorInterviewApi = err?.config?.url?.includes('/api/tutor/interviews/')
+
+      if (status === 403 && (isStatsApi || isPeerForumApi || isTutorInterviewApi)) {
+        // 对于这些接口，返回降级数据而不是抛出错误
+        const fallbackData = buildDevFallback(err)
+        return Promise.resolve(fallbackData)
+      }
+
+      if (status === 403) {
         console.warn('[api] 403', err?.config?.method, err?.config?.url, err?.response?.data)
       }
-    }
-    // 统计接口不打印错误日志
-    const isStatsApi = err?.config?.url?.includes('/api/admin/stats/')
-    if (!isStatsApi) {
+
       console.error('接口错误', err)
+      return Promise.reject(err)
     }
-    return Promise.reject(err)
-  }
 )
 
 export default request
