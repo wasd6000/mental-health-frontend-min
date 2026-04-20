@@ -1,11 +1,11 @@
 <template>
-  <div class="announcement-list">
+  <div class="system-message-list">
     <!-- 搜索和筛选工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
         <el-input
           v-model="query.keyword"
-          placeholder="搜索公告标题..."
+          placeholder="搜索消息标题..."
           clearable
           class="search-input"
           @input="debounceSearch"
@@ -14,10 +14,13 @@
             <el-icon><Search /></el-icon>
           </template>
         </el-input>
-        <el-select v-model="query.type" placeholder="公告类型" clearable @change="loadList">
-          <el-option label="系统公告" :value="1" />
-          <el-option label="活动通知" :value="2" />
-          <el-option label="紧急通知" :value="3" />
+        <el-select v-model="messageTypeFilter" placeholder="消息类型" clearable @change="handleTypeFilterChange">
+          <el-option label="全部" value="" />
+          <el-option label="系统消息" value="SYSTEM" />
+          <el-option label="预约通知" value="APPOINTMENT" />
+          <el-option label="危机预警" value="CRISIS" />
+          <el-option label="提醒" value="REMINDER" />
+          <el-option label="通知" value="NOTIFICATION" />
         </el-select>
       </div>
       <div class="toolbar-right">
@@ -32,57 +35,79 @@
       </div>
     </div>
 
-    <!-- 公告列表 -->
+    <!-- 统计信息 -->
+    <div class="statistics-bar">
+      <el-tag type="info" effect="plain">
+        总计 {{ totalCount }} 条
+      </el-tag>
+      <el-tag type="success" effect="plain">
+        已读 {{ readCount }} 条
+      </el-tag>
+      <el-tag type="danger" effect="plain">
+        未读 {{ unreadCount }} 条
+      </el-tag>
+      <el-tag v-if="appointmentCount > 0" type="warning" effect="plain">
+        预约通知 {{ appointmentCount }} 条
+      </el-tag>
+      <el-tag v-if="crisisCount > 0" type="danger" effect="plain">
+        危机预警 {{ crisisCount }} 条
+      </el-tag>
+    </div>
+
+    <!-- 消息列表 -->
     <el-card v-loading="loading" class="list-card" shadow="never">
-      <div v-if="announcementList.length > 0" class="announcement-items">
+      <div v-if="messageList.length > 0" class="message-items">
         <div
-          v-for="item in announcementList"
-          :key="item.id"
-          class="announcement-item"
-          :class="{ unread: !item.hasRead }"
+          v-for="item in messageList"
+          :key="item.messageId || item.id"
+          class="message-item"
+          :class="{ unread: !item.isRead && !item.read }"
           @click="openDetail(item)"
         >
           <div class="item-left">
-            <div class="item-icon" :class="`type-${item.type}`">
+            <div class="item-icon" :class="`type-${getMessageTypeClass(item.messageType || item.type)}`">
               <el-icon>
-                <Bell v-if="item.type === 1" />
-                <Calendar v-else-if="item.type === 2" />
-                <Warning v-else />
+                <Bell v-if="getMessageTypeClass(item.messageType || item.type) === 'SYSTEM'" />
+                <Warning v-else-if="getMessageTypeClass(item.messageType || item.type) === 'CRISIS'" />
+                <Timer v-else-if="getMessageTypeClass(item.messageType || item.type) === 'REMINDER'" />
+                <Calendar v-else-if="getMessageTypeClass(item.messageType || item.type) === 'APPOINTMENT'" />
+                <Document v-else />
               </el-icon>
             </div>
             <div class="item-content">
               <div class="item-header">
                 <span class="item-title">{{ item.title }}</span>
                 <el-tag
-                  v-if="item.priority === 2"
+                  v-if="item.priority === 1 || item.priority === 'HIGH'"
                   type="danger"
                   size="small"
                   effect="dark"
-                >紧急</el-tag>
-                <el-tag
-                  v-else-if="item.priority === 1"
-                  type="warning"
-                  size="small"
                 >重要</el-tag>
                 <el-tag
-                  v-if="!item.hasRead"
+                  v-if="getMessageTypeText(item.messageType || item.type) === '危机预警'"
+                  type="danger"
+                  size="small"
+                >危机</el-tag>
+                <el-tag
+                  v-if="getMessageTypeText(item.messageType || item.type) === '预约通知'"
+                  type="warning"
+                  size="small"
+                >预约</el-tag>
+                <el-tag
+                  v-if="!item.isRead && !item.read"
                   type="success"
                   size="small"
                 >未读</el-tag>
               </div>
-              <div class="item-summary">{{ item.summary || item.content?.substring(0, 100) }}</div>
+              <div class="item-summary">{{ item.content?.substring(0, 100) }}</div>
               <div class="item-meta">
                 <span class="meta-item">
-                  <el-icon><User /></el-icon>
-                  {{ item.publisherName || '系统管理员' }}
-                </span>
-                <span class="meta-item">
                   <el-icon><Clock /></el-icon>
-                  {{ formatTime(item.publishTime) }}
+                  {{ formatTime(item.createdAt || item.createTime) }}
                 </span>
-                <span class="meta-item" v-if="item.readCount">
-                  <el-icon><View /></el-icon>
-                  {{ item.readCount }}人阅读
+                <span class="meta-item" v-if="item.sourceName">
+                  <el-icon><User /></el-icon>
+                  {{ item.sourceName }}
                 </span>
               </div>
             </div>
@@ -92,7 +117,7 @@
           </div>
         </div>
       </div>
-      <el-empty v-else description="暂无公告通知" />
+      <el-empty v-else description="暂无系统消息" />
 
       <!-- 分页 -->
       <div v-if="total > 0" class="pagination-wrapper">
@@ -108,46 +133,39 @@
       </div>
     </el-card>
 
-    <!-- 公告详情对话框 -->
+    <!-- 消息详情对话框 -->
     <el-dialog
       v-model="detailVisible"
-      :title="currentAnnouncement.title || '公告详情'"
+      :title="currentMessage.title || '消息详情'"
       width="800px"
       destroy-on-close
     >
       <div class="detail-content">
         <div class="detail-meta">
           <span class="meta-item">
-            <el-icon><User /></el-icon>
-            发布人：{{ currentAnnouncement.publisherName || '系统管理员' }}
-          </span>
-          <span class="meta-item">
             <el-icon><Clock /></el-icon>
-            发布时间：{{ formatTime(currentAnnouncement.publishTime, true) }}
+            发送时间：{{ formatTime(currentMessage.createdAt || currentMessage.createTime, true) }}
           </span>
-          <span class="meta-item" v-if="currentAnnouncement.readCount">
-            <el-icon><View /></el-icon>
-            阅读量：{{ currentAnnouncement.readCount }}
-          </span>
+          <el-tag :type="getMessageTypeTag(currentMessage.messageType || currentMessage.type)" size="small">
+            {{ getMessageTypeText(currentMessage.messageType || currentMessage.type) }}
+          </el-tag>
+          <el-tag v-if="currentMessage.priority === 1 || currentMessage.priority === 'HIGH'" type="danger" size="small">
+            重要
+          </el-tag>
         </div>
-        <div class="detail-body" v-html="formattedContent"></div>
-        <div v-if="currentAnnouncement.attachmentUrl" class="detail-attachment">
+        <div class="detail-body">{{ currentMessage.content }}</div>
+        <div v-if="currentMessage.relatedData" class="detail-related">
           <el-divider />
-          <div class="attachment-title">
-            <el-icon><Paperclip /></el-icon>
-            附件
-          </div>
-          <el-link :href="currentAnnouncement.attachmentUrl" target="_blank" type="primary">
-            下载附件
-          </el-link>
+          <div class="related-title">相关信息</div>
+          <pre class="related-data">{{ JSON.stringify(currentMessage.relatedData, null, 2) }}</pre>
         </div>
       </div>
       <template #footer>
         <el-button @click="detailVisible = false">关闭</el-button>
         <el-button
-          v-if="!currentAnnouncement.hasRead"
+          v-if="!currentMessage.isRead && !currentMessage.read"
           type="primary"
-          @click="markAsRead(currentAnnouncement)"
+          @click="markAsRead(currentMessage)"
         >
           标记已读
         </el-button>
@@ -159,35 +177,32 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Bell, Calendar, Warning, ArrowRight, User, Clock, View, Paperclip } from '@element-plus/icons-vue'
+import { Search, Bell, Warning, Timer, Calendar, Document, ArrowRight, Clock, User } from '@element-plus/icons-vue'
 import request from '@/request'
 import { useMessageStore } from '@/stores/messageStore'
 
 const messageStore = useMessageStore()
-
 const emit = defineEmits(['update-unread'])
 
 const loading = ref(false)
-const announcementList = ref([])
+const messageList = ref([])
 const total = ref(0)
 const unreadCount = ref(0)
+const readCount = ref(0)
+const totalCount = ref(0)
+const appointmentCount = ref(0)
+const crisisCount = ref(0)
 const readFilter = ref('')
+const messageTypeFilter = ref('')
 
 const query = ref({
   page: 1,
-  pageSize: 10,
-  keyword: '',
-  type: null
+  pageSize: 20,
+  keyword: ''
 })
 
 const detailVisible = ref(false)
-const currentAnnouncement = ref({})
-
-const formattedContent = computed(() => {
-  if (!currentAnnouncement.value.content) return ''
-  // 简单处理换行
-  return currentAnnouncement.value.content.replace(/\n/g, '<br>')
-})
+const currentMessage = ref({})
 
 let searchTimer = null
 function debounceSearch() {
@@ -203,57 +218,83 @@ function handleReadFilterChange() {
   loadList()
 }
 
+function handleTypeFilterChange() {
+  query.value.page = 1
+  loadList()
+}
+
 async function loadList() {
   loading.value = true
   try {
     const params = {
       page: query.value.page,
       pageSize: query.value.pageSize,
-      keyword: query.value.keyword,
-      type: query.value.type
-    }
-    // 根据筛选条件添加已读参数
-    if (readFilter.value === 'read') {
-      params.isRead = true
-    } else if (readFilter.value === 'unread') {
-      params.isRead = false
+      keyword: query.value.keyword
     }
 
-    const res = await request.get('/api/message/announcement/list', { params })
+    // 根据筛选条件添加已读参数
+    if (readFilter.value === 'read') {
+      params.read = true
+    } else if (readFilter.value === 'unread') {
+      params.read = false
+    }
+
+    // 根据消息类型筛选
+    if (messageTypeFilter.value) {
+      params.messageType = messageTypeFilter.value
+    }
+
+    const res = await request.get('/api/message/list', { params })
     if (res.code === 200 && res.data) {
-      announcementList.value = res.data.records || []
+      messageList.value = res.data.records || res.data.list || []
       total.value = res.data.total || 0
-      // 更新未读数 - 使用当前页的未读数
-      unreadCount.value = announcementList.value.filter(item => !item.hasRead).length
+
+      // 统计各类消息数量
+      const allMessages = messageList.value
+      unreadCount.value = allMessages.filter(item => !(item.isRead || item.read)).length
+      readCount.value = allMessages.filter(item => (item.isRead || item.read)).length
+      totalCount.value = allMessages.length
+      appointmentCount.value = allMessages.filter(item =>
+        (item.messageType || item.type) === 'APPOINTMENT'
+      ).length
+      crisisCount.value = allMessages.filter(item =>
+        (item.messageType || item.type) === 'CRISIS'
+      ).length
+
       emit('update-unread', unreadCount.value)
     }
   } catch (e) {
-    console.error('加载公告列表失败:', e)
-    ElMessage.error('加载公告列表失败')
+    console.error('加载系统消息列表失败:', e)
+    ElMessage.error('加载系统消息列表失败')
   } finally {
     loading.value = false
   }
 }
 
 async function openDetail(item) {
-  currentAnnouncement.value = { ...item }
+  currentMessage.value = { ...item }
   detailVisible.value = true
   // 自动标记已读
-  if (!item.hasRead) {
+  if (!item.isRead && !item.read) {
     await markAsRead(item, false)
   }
 }
 
 async function markAsRead(item, showMessage = true) {
   try {
-    await request.post(`/api/message/announcement/read/${item.id}`)
-    item.hasRead = true
+    await request.post('/api/message/mark-read', {
+      messageIds: [item.messageId || item.id]
+    })
+    item.isRead = true
+    item.read = true
     if (showMessage) {
       ElMessage.success('已标记为已读')
     }
     // 同时更新全局store和父组件
-    messageStore.decreaseAnnouncementUnread(1)
+    messageStore.decreaseSystemMessageUnread(1)
     emit('update-unread', Math.max(0, unreadCount.value - 1))
+    // 重新加载以更新统计
+    await loadList()
   } catch (e) {
     console.error('标记已读失败:', e)
     if (showMessage) {
@@ -264,23 +305,23 @@ async function markAsRead(item, showMessage = true) {
 
 async function markAllAsRead() {
   try {
-    await ElMessageBox.confirm('确定将所有公告标记为已读吗？', '提示', {
+    await ElMessageBox.confirm('确定将所有消息标记为已读吗？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     })
-    // 获取所有未读公告ID
-    const unreadIds = announcementList.value.filter(item => !item.hasRead).map(item => item.id)
-    const unreadCountBefore = unreadIds.length
-    // 逐个标记已读（后端没有批量接口）
-    for (const id of unreadIds) {
-      await request.post(`/api/message/announcement/read/${id}`)
-    }
-    announcementList.value.forEach(item => item.hasRead = true)
+    await request.post('/api/message/mark-all-read')
+    // 计算之前的未读数用于更新store
+    const unreadCountBefore = messageList.value.filter(item => !(item.isRead || item.read)).length
+    messageList.value.forEach(item => {
+      item.isRead = true
+      item.read = true
+    })
     // 更新本地未读数
     unreadCount.value = 0
+    readCount.value = totalCount.value
     // 同时更新全局store和父组件
-    messageStore.decreaseAnnouncementUnread(unreadCountBefore)
+    messageStore.decreaseSystemMessageUnread(unreadCountBefore)
     emit('update-unread', 0)
     ElMessage.success('已全部标记为已读')
   } catch (e) {
@@ -289,6 +330,41 @@ async function markAllAsRead() {
       ElMessage.error('操作失败')
     }
   }
+}
+
+function getMessageTypeClass(type) {
+  const normalizedType = String(type).toUpperCase()
+  if (normalizedType === 'CRISIS') return 'CRISIS'
+  if (normalizedType === 'APPOINTMENT') return 'APPOINTMENT'
+  if (normalizedType === 'REMINDER') return 'REMINDER'
+  if (normalizedType === 'ALERT') return 'ALERT'
+  if (normalizedType === 'NOTIFICATION') return 'NOTIFICATION'
+  return 'SYSTEM'
+}
+
+function getMessageTypeTag(type) {
+  const map = {
+    'SYSTEM': 'info',
+    'APPOINTMENT': 'warning',
+    'REMINDER': 'primary',
+    'NOTIFICATION': 'success',
+    'ALERT': 'danger',
+    'CRISIS': 'danger'
+  }
+  return map[type] || 'info'
+}
+
+function getMessageTypeText(type) {
+  const normalizedType = String(type).toUpperCase()
+  const map = {
+    'SYSTEM': '系统消息',
+    'APPOINTMENT': '预约通知',
+    'REMINDER': '提醒',
+    'NOTIFICATION': '通知',
+    'ALERT': '警报',
+    'CRISIS': '危机预警'
+  }
+  return map[normalizedType] || normalizedType
 }
 
 function formatTime(time, full = false) {
@@ -326,7 +402,7 @@ defineExpose({ loadList })
 </script>
 
 <style scoped>
-.announcement-list {
+.system-message-list {
   min-height: 400px;
 }
 
@@ -344,12 +420,12 @@ defineExpose({ loadList })
   flex: 1;
 }
 
-.toolbar-left .el-select {
-  width: 140px;
-}
-
 .search-input {
   max-width: 300px;
+}
+
+.toolbar-left .el-select {
+  width: 160px;
 }
 
 .toolbar-right {
@@ -358,17 +434,24 @@ defineExpose({ loadList })
   align-items: center;
 }
 
+.statistics-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
 .list-card {
   border-radius: 8px;
 }
 
-.announcement-items {
+.message-items {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.announcement-item {
+.message-item {
   display: flex;
   align-items: center;
   padding: 16px;
@@ -379,12 +462,12 @@ defineExpose({ loadList })
   border-left: 4px solid transparent;
 }
 
-.announcement-item:hover {
+.message-item:hover {
   background: #f1f5f9;
   transform: translateX(4px);
 }
 
-.announcement-item.unread {
+.message-item.unread {
   background: #fff;
   border-left-color: #3b82f6;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -408,19 +491,30 @@ defineExpose({ loadList })
   flex-shrink: 0;
 }
 
-.item-icon.type-1 {
+.item-icon.type-SYSTEM {
   background: #dbeafe;
   color: #2563eb;
 }
 
-.item-icon.type-2 {
+.item-icon.type-APPOINTMENT {
   background: #fef3c7;
   color: #f59e0b;
 }
 
-.item-icon.type-3 {
+.item-icon.type-REMINDER {
+  background: #e0e7ff;
+  color: #6366f1;
+}
+
+.item-icon.type-ALERT,
+.item-icon.type-CRISIS {
   background: #fee2e2;
   color: #dc2626;
+}
+
+.item-icon.type-NOTIFICATION {
+  background: #d1fae5;
+  color: #10b981;
 }
 
 .item-content {
@@ -433,6 +527,7 @@ defineExpose({ loadList })
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .item-title {
@@ -462,6 +557,7 @@ defineExpose({ loadList })
   gap: 16px;
   font-size: 13px;
   color: #94a3b8;
+  flex-wrap: wrap;
 }
 
 .meta-item {
@@ -476,7 +572,7 @@ defineExpose({ loadList })
   padding-left: 16px;
 }
 
-.announcement-item:hover .item-arrow {
+.message-item:hover .item-arrow {
   color: #64748b;
 }
 
@@ -494,13 +590,14 @@ defineExpose({ loadList })
 
 .detail-meta {
   display: flex;
-  gap: 20px;
+  gap: 12px;
   padding: 16px;
   background: #f8fafc;
   border-radius: 8px;
   margin-bottom: 20px;
   font-size: 14px;
   color: #64748b;
+  flex-wrap: wrap;
 }
 
 .detail-meta .meta-item {
@@ -514,19 +611,28 @@ defineExpose({ loadList })
   color: #334155;
   font-size: 15px;
   padding: 0 8px;
+  white-space: pre-wrap;
 }
 
-.detail-attachment {
+.detail-related {
   margin-top: 20px;
 }
 
-.attachment-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.related-title {
   font-size: 14px;
-  color: #64748b;
+  font-weight: 600;
+  color: #475569;
   margin-bottom: 12px;
+}
+
+.related-data {
+  background: #f8fafc;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #64748b;
+  overflow-x: auto;
+  max-height: 200px;
 }
 
 @media (max-width: 768px) {
@@ -539,8 +645,8 @@ defineExpose({ loadList })
     flex-direction: column;
   }
 
-  .toolbar-left .el-select,
-  .search-input {
+  .search-input,
+  .toolbar-left .el-select {
     width: 100% !important;
     max-width: none;
   }
@@ -552,6 +658,10 @@ defineExpose({ loadList })
   .detail-meta {
     flex-direction: column;
     gap: 8px;
+  }
+
+  .statistics-bar {
+    justify-content: flex-start;
   }
 }
 </style>

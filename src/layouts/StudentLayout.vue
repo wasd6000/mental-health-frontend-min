@@ -44,35 +44,29 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Bell } from '@element-plus/icons-vue'
-import { getUnreadCount } from '@/api/message'
+import { useMessageStore } from '@/stores/messageStore'
 
 const router = useRouter()
 const route = useRoute()
-const unreadCount = ref(0)
+const messageStore = useMessageStore()
+
+const unreadCount = computed(() => messageStore.totalUnread)
 
 const displayName = computed(
   () => localStorage.getItem('user_name') || localStorage.getItem('User_name') || '同学'
 )
 
 // 加载未读消息数
-const loadUnreadCount = async () => {
-  try {
-    const res = await getUnreadCount()
-    if (res.code === 200 && res.data) {
-      unreadCount.value = res.data.totalUnread || 0
-    }
-  } catch (e) {
-    console.warn('加载未读消息失败:', e)
-  }
-}
-
 onMounted(() => {
-  loadUnreadCount()
-  // 每分钟刷新一次
-  setInterval(loadUnreadCount, 60000)
+  messageStore.fetchUnreadCount(true)
+  messageStore.startPolling(30000)
+})
+
+onUnmounted(() => {
+  messageStore.stopPolling()
 })
 
 const menuItems = [

@@ -291,7 +291,8 @@ async function loadStats() {
     const msgRes = await getUnreadCount()
     if (msgRes?.data !== undefined) {
       if (typeof msgRes.data === 'object' && msgRes.data !== null) {
-        stats.value.unreadCount = msgRes.data.totalCount || 0
+        // 后端返回的是 totalUnread，不是 totalCount
+        stats.value.unreadCount = msgRes.data.totalUnread || 0
       } else {
         stats.value.unreadCount = msgRes.data
       }
@@ -402,7 +403,7 @@ async function loadTodo() {
     try {
       const msgRes = await getUnreadCount()
       if (msgRes?.data) {
-        const unreadCount = typeof msgRes.data === 'object' ? msgRes.data.totalCount : msgRes.data
+        const unreadCount = typeof msgRes.data === 'object' ? msgRes.data.totalUnread : msgRes.data
         if (unreadCount > 0) {
           todos.push({
             id: 'message-unread',

@@ -304,7 +304,7 @@ const routes = [
   component: () => import('../layouts/StudentLayout.vue'),
   meta: { needAuth: true },
   children: [
-    { path: '', name: 'MessageCenter', component: () => import('../views/message/MessageCenter.vue') }
+    { path: '', name: 'MessageCenter', component: () => import('../views/message/NewMessageCenter.vue') }
   ]
 },
 {

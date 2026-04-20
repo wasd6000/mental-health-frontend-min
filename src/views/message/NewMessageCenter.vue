@@ -32,6 +32,18 @@
         </template>
         <PrivateMessageList ref="privateMessageRef" @update-unread="updatePrivateUnread" />
       </el-tab-pane>
+
+      <!-- 系统消息标签页 -->
+      <el-tab-pane name="system">
+        <template #label>
+          <span class="tab-label">
+            <el-icon><Message /></el-icon>
+            系统消息
+            <el-badge v-if="unreadCount.systemMessage > 0" :value="unreadCount.systemMessage" class="tab-badge" />
+          </span>
+        </template>
+        <SystemMessageList ref="systemMessageRef" @update-unread="updateSystemUnread" />
+      </el-tab-pane>
     </el-tabs>
   </div>
 </template>
@@ -39,39 +51,32 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Refresh, Bell, ChatDotRound } from '@element-plus/icons-vue'
+import { Refresh, Bell, ChatDotRound, Message } from '@element-plus/icons-vue'
+import { useMessageStore } from '@/stores/messageStore'
 import AnnouncementList from './components/AnnouncementList.vue'
 import PrivateMessageList from './components/PrivateMessageList.vue'
-import request from '@/request'
+import SystemMessageList from './components/SystemMessageList.vue'
 
-const activeTab = ref('announcement')
+const messageStore = useMessageStore()
+
+const activeTab = ref('system')
 const announcementRef = ref(null)
 const privateMessageRef = ref(null)
+const systemMessageRef = ref(null)
 
-const unreadCount = ref({
-  announcement: 0,
-  privateMessage: 0,
-  total: 0
-})
+// 从store获取未读数
+const unreadCount = computed(() => ({
+  announcement: messageStore.announcementUnread,
+  privateMessage: messageStore.privateMessageUnread,
+  systemMessage: messageStore.systemMessageUnread,
+  total: messageStore.totalUnread
+}))
 
-const totalUnread = computed(() => {
-  return unreadCount.value.announcement + unreadCount.value.privateMessage
-})
+const totalUnread = computed(() => messageStore.totalUnread)
 
 // 加载未读统计
 async function loadUnreadCount() {
-  try {
-    const res = await request.get('/api/message/unread-count')
-    if (res.code === 200 && res.data) {
-      unreadCount.value = {
-        announcement: res.data.announcementUnread || 0,
-        privateMessage: res.data.privateMessageUnread || 0,
-        total: res.data.totalUnread || 0
-      }
-    }
-  } catch (e) {
-    console.error('加载未读统计失败:', e)
-  }
+  await messageStore.fetchUnreadCount(true)
 }
 
 function handleTabChange(tab) {
@@ -79,6 +84,8 @@ function handleTabChange(tab) {
     announcementRef.value.loadList()
   } else if (tab === 'private' && privateMessageRef.value) {
     privateMessageRef.value.loadConversations()
+  } else if (tab === 'system' && systemMessageRef.value) {
+    systemMessageRef.value.loadList()
   }
 }
 
@@ -88,15 +95,22 @@ function refreshAll() {
     announcementRef.value.loadList()
   } else if (activeTab.value === 'private' && privateMessageRef.value) {
     privateMessageRef.value.loadConversations()
+  } else if (activeTab.value === 'system' && systemMessageRef.value) {
+    systemMessageRef.value.loadList()
   }
 }
 
+// 子组件更新未读数时同步到store
 function updateAnnouncementUnread(count) {
-  unreadCount.value.announcement = count
+  messageStore.setAnnouncementUnread(count)
 }
 
 function updatePrivateUnread(count) {
-  unreadCount.value.privateMessage = count
+  messageStore.setPrivateMessageUnread(count)
+}
+
+function updateSystemUnread(count) {
+  messageStore.setSystemMessageUnread(count)
 }
 
 onMounted(() => {

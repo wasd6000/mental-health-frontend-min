@@ -200,7 +200,9 @@ import {
   Picture, Document, Loading
 } from '@element-plus/icons-vue'
 import request from '@/request'
+import { useMessageStore } from '@/stores/messageStore'
 
+const messageStore = useMessageStore()
 const emit = defineEmits(['update-unread'])
 
 const loading = ref(false)
@@ -256,6 +258,8 @@ async function loadConversations() {
     const res = await request.get('/api/message/conversation/list')
     if (res.code === 200 && Array.isArray(res.data)) {
       conversations.value = res.data
+      // 同时更新全局store和父组件
+      messageStore.setPrivateMessageUnread(totalUnread.value)
       emit('update-unread', totalUnread.value)
     }
   } catch (e) {
@@ -272,8 +276,11 @@ async function selectConversation(conv) {
   await loadMessages(conv.targetUserId)
   // 标记会话已读
   if (conv.unreadCount > 0) {
+    const unreadBefore = conv.unreadCount
     await markConversationAsRead(conv.targetUserId)
     conv.unreadCount = 0
+    // 同时更新全局store和父组件
+    messageStore.decreasePrivateMessageUnread(unreadBefore)
     emit('update-unread', totalUnread.value)
   }
 }
@@ -378,11 +385,17 @@ async function deleteConversation(conv) {
       cancelButtonText: '取消',
       type: 'warning'
     })
+    // 记录删除前的未读数
+    const unreadBefore = conv.unreadCount || 0
     await request.delete(`/api/message/conversation/${conv.id}`)
     conversations.value = conversations.value.filter(c => c.id !== conv.id)
     if (currentConversation.value?.id === conv.id) {
       currentConversation.value = null
       messageList.value = []
+    }
+    // 同时更新全局store和父组件
+    if (unreadBefore > 0) {
+      messageStore.decreasePrivateMessageUnread(unreadBefore)
     }
     emit('update-unread', totalUnread.value)
     ElMessage.success('删除成功')

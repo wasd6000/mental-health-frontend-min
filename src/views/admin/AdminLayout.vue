@@ -71,13 +71,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getNoticeList } from '../../api/notice'
 import { clearAuthTokens } from '@/api/request'
 import { getMyPermissions } from '../../api/permissionApi.js'
 import { transformBackendMenus, flattenMenuTree } from '../../utils/menuHelper.js'
 import { ElMessage } from 'element-plus'
+import { useMessageStore } from '@/stores/messageStore'
 import {
   Bell,
   UserFilled,
@@ -86,7 +87,8 @@ import {
 
 const router = useRouter()
 const route = useRoute()
-const unreadCount = ref(0)
+const messageStore = useMessageStore()
+const unreadCount = computed(() => messageStore.totalUnread)
 const menuLoading = ref(true)
 const sidebarMenus = ref([])
 const userPermissions = ref([])
@@ -94,29 +96,20 @@ const userRoles = ref([])
 
 onMounted(async () => {
   // 加载未读消息数
-  loadUnreadCount()
+  messageStore.fetchUnreadCount(true)
+  messageStore.startPolling(30000)
 
   // 加载用户权限和动态菜单
   await loadUserPermissionsAndMenus()
 })
 
-// 加载未读消息数
+onUnmounted(() => {
+  messageStore.stopPolling()
+})
+
+// 加载未读消息数（保留原有逻辑，但改用store）
 const loadUnreadCount = async () => {
-  try {
-    const res = await getNoticeList({ page: 1, pageSize: 200 })
-    const payload = res?.data
-    let total = 0
-    if (payload != null && typeof payload === 'object' && !Array.isArray(payload)) {
-      const records = payload.records || payload.list || []
-      total = Number(payload.total)
-      if (!Number.isFinite(total) || (Array.isArray(records) && records.length > total)) {
-        total = Array.isArray(records) ? records.length : 0
-      }
-    }
-    unreadCount.value = Number.isFinite(total) ? total : 0
-  } catch (e) {
-    console.warn('加载未读消息失败:', e)
-  }
+  await messageStore.fetchUnreadCount(true)
 }
 
 // 加载用户权限和动态菜单

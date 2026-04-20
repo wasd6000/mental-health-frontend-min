@@ -92,6 +92,37 @@
       </el-tab-pane>
     </el-tabs>
 
+    <!-- 帖子详情对话框 -->
+    <el-dialog v-model="postDetailVisible" title="帖子详情" width="700px" destroy-on-close>
+      <div v-if="postDetailLoading" class="detail-loading">
+        <el-icon class="is-loading"><Loading /></el-icon>
+        <span>加载中...</span>
+      </div>
+      <template v-else-if="postDetail">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="标题" :span="2">{{ postDetail.title }}</el-descriptions-item>
+          <el-descriptions-item label="板块">{{ postDetail.category }}</el-descriptions-item>
+          <el-descriptions-item label="作者">{{ postDetail.authorDisplay }}</el-descriptions-item>
+          <el-descriptions-item label="发布时间">{{ formatDateTime(postDetail.createdAt) }}</el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag :type="postDetail.status === 'approved' ? 'success' : 'warning'">
+              {{ postDetail.status === 'approved' ? '已通过' : '待审核' }}
+            </el-tag>
+          </el-descriptions-item>
+        </el-descriptions>
+        <div class="post-content">
+          <h4>帖子内容</h4>
+          <div class="content-text">{{ postDetail.content || '暂无内容' }}</div>
+        </div>
+      </template>
+      <el-empty v-else description="加载失败" />
+      <template #footer>
+        <el-button @click="postDetailVisible = false">关闭</el-button>
+        <el-button v-if="postDetail && postDetail.status !== 'approved'" type="success" @click="approveAndClose(postDetail.id)">通过</el-button>
+        <el-button v-if="postDetail && postDetail.status !== 'approved'" type="danger" plain @click="rejectAndClose(postDetail.id)">驳回</el-button>
+      </template>
+    </el-dialog>
+
     <el-dialog v-model="rejectVisible" title="驳回原因" width="520px" :close-on-click-modal="false">
       <el-input v-model="rejectReason" type="textarea" :rows="3" maxlength="200" show-word-limit placeholder="请输入驳回原因（可留空）" />
       <template #footer>
@@ -106,7 +137,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { adminListPendingPosts, adminReviewPost, adminListReports, adminHandleReport } from '@/api/peerForumApi.js'
+import { Loading } from '@element-plus/icons-vue'
+import { adminListPendingPosts, adminReviewPost, adminListReports, adminHandleReport, getPostDetail } from '@/api/peerForumApi.js'
 import type { ForumPost, ForumReport } from '@/types/peerForum.js'
 
 const router = useRouter()
@@ -124,8 +156,44 @@ function formatDateTime(iso: string) {
   return `${y}-${m}-${day} ${hh}:${mm}`
 }
 
-function goDetail(id: string) {
-  router.push(`/student/peer-support/${id}`)
+// 帖子详情对话框
+const postDetailVisible = ref(false)
+const postDetailLoading = ref(false)
+const postDetail = ref<ForumPost | null>(null)
+
+async function goDetail(id: string) {
+  postDetailVisible.value = true
+  postDetailLoading.value = true
+  postDetail.value = null
+
+  try {
+    const detail = await getPostDetail(id)
+    postDetail.value = detail
+  } catch (e: any) {
+    ElMessage.error(e?.message || '加载帖子详情失败')
+  } finally {
+    postDetailLoading.value = false
+  }
+}
+
+// 在对话框中通过
+async function approveAndClose(id: string) {
+  try {
+    await adminReviewPost(id, { action: 'approve' })
+    ElMessage.success('已通过')
+    postDetailVisible.value = false
+    await loadPending()
+  } catch (e: any) {
+    ElMessage.error(e?.message || '操作失败')
+  }
+}
+
+// 在对话框中驳回
+async function rejectAndClose(id: string) {
+  rejectId.value = id
+  rejectReason.value = ''
+  postDetailVisible.value = false
+  rejectVisible.value = true
 }
 
 // pending posts
@@ -265,5 +333,36 @@ onMounted(async () => {
   color: #94a3b8;
   font-size: 12px;
 }
-</style>
 
+.detail-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 0;
+  color: #909399;
+}
+
+.post-content {
+  margin-top: 20px;
+}
+
+.post-content h4 {
+  margin: 0 0 12px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.content-text {
+  line-height: 1.8;
+  color: #334155;
+  white-space: pre-wrap;
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 8px;
+  min-height: 100px;
+}
+</style>
