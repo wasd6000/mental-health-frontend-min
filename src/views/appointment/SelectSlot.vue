@@ -260,6 +260,7 @@ import {
   parseAppointmentSubmitData,
 } from '../../api/psychPlatformAppointment.js'
 import { useAppointmentMock, resolveBackendUserIdForAppointmentApi } from '../../api/appointmentEnv'
+import { getApprovedLeaveList } from '../../api/leaveApi.js'
 import request from '../../api/request.js'
 
 const router = useRouter()
@@ -416,6 +417,21 @@ async function refreshSchedule() {
       const consultantRows = unwrapPageResult(conRes).records
       const nameMap = buildCounselorNameMap(consultantRows)
 
+      // 获取已批准的请假列表，用于过滤请假时间段的排班
+      let approvedLeaves: any[] = []
+      try {
+        const leaveRes = await getApprovedLeaveList({
+          startDate: semesterStartStr,
+          endDate: semesterEndStr,
+        })
+        if (leaveRes?.code === 200 && Array.isArray(leaveRes.data)) {
+          approvedLeaves = leaveRes.data
+          console.log('📋 已批准请假列表:', approvedLeaves.length, '条')
+        }
+      } catch (e) {
+        console.warn('获取请假列表失败:', e)
+      }
+
       const bookedScheduleIds = new Set<string>()
       const uid =
           studentId.value || resolveBackendUserIdForAppointmentApi()
@@ -448,6 +464,21 @@ async function refreshSchedule() {
         expanded.forEach((slot) => {
           if (!slot.scheduleId || !slot.date) return
           if (bookedScheduleIds.has(String(slot.scheduleId))) return
+          // 检查该时段是否在请假时间段内
+          const counselorId = slot.counselorId || slot.counselor_id
+          const slotStartTime = new Date(`${slot.date}T${slot.time?.split('-')[0] || '00:00:00'}`)
+          const slotEndTime = new Date(`${slot.date}T${slot.time?.split('-')[1] || '23:59:59'}`)
+          const isInLeavePeriod = approvedLeaves.some((leave: any) => {
+            if (leave.counselorId !== counselorId) return false
+            const leaveStart = new Date(leave.startTime)
+            const leaveEnd = new Date(leave.endTime)
+            // 检查时段是否与请假时间段重叠
+            return slotStartTime < leaveEnd && slotEndTime > leaveStart
+          })
+          if (isInLeavePeriod) {
+            console.log('🚫 过滤请假时段:', slot.date, slot.time, '咨询师:', counselorId)
+            return
+          }
           if (slot.date >= semesterStartStr && slot.date <= semesterEndStr) {
             availableSlots.push({
               ...slot,

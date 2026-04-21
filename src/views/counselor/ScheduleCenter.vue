@@ -180,6 +180,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getCounselorList,
   getScheduleList,
+  createSchedule,
   updateSchedule,
   deleteSchedule,
   clearScheduleByDate,
@@ -189,6 +190,7 @@ import {
   deleteTemplate,
   batchCreateSchedule
 } from '../../../api/scheduleApi'
+import { getApprovedLeaveList } from '../../../api/leaveApi.js'
 
 // ===== 状态定义 =====
 const loading = ref(false)
@@ -199,6 +201,7 @@ const viewMode = ref('week') // week | day
 const counselors = ref([])
 const schedule = ref([])
 const templateList = ref([])
+const approvedLeaves = ref([]) // 已批准的请假列表
 const selectedCounselorId = ref('')
 const currentCell = ref({ date: '', time: '' })
 
@@ -232,8 +235,15 @@ const periods = ref([
 async function loadCounselors() {
   try {
     const res = await getCounselorList({ page: 1, pageSize: 100 })
+    console.log('咨询师列表响应:', res)
     if (res?.code === 200 && res.data) {
-      counselors.value = res.data.list || res.data.records || []
+      const list = res.data.list || res.data.records || []
+      // 统一字段名映射
+      counselors.value = list.map(item => ({
+        id: item.id || item.counselorId || item.counselor_id,
+        name: item.name || item.counselorName || item.counselor_name || item.realName || item.real_name || item.username
+      })).filter(c => c.id && c.name)
+      console.log('加载咨询师列表:', counselors.value.length, '人', counselors.value)
     }
   } catch (e) {
     console.error('加载咨询师列表失败:', e)
@@ -256,8 +266,31 @@ async function loadSchedule() {
     })
 
     if (res?.code === 200 && res.data) {
-      schedule.value = res.data.list || res.data.records || []
+      // 转换后端数据格式
+      const records = res.data.list || res.data.records || []
+      schedule.value = records
+        .filter(item => item != null)
+        .map(item => ({
+          id: item.scheduleId || item.schedule_id,
+          date: item.scheduleDate || item.schedule_date,
+          time: `${item.startTime || item.start_time}-${item.endTime || item.end_time}`,
+          counselorId: item.counselorId || item.counselor_id,
+          counselorName: item.counselorName || item.counselor_name,
+          status: item.status
+        }))
       console.log('📊 加载排班数据：', schedule.value.length, '条')
+    }
+
+    // 加载已批准的请假数据
+    try {
+      const leaveRes = await getApprovedLeaveList({ startDate, endDate })
+      if (leaveRes?.code === 200 && Array.isArray(leaveRes.data)) {
+        approvedLeaves.value = leaveRes.data
+        console.log('📋 已批准请假数据：', approvedLeaves.value.length, '条')
+      }
+    } catch (e) {
+      console.warn('获取请假数据失败:', e)
+      approvedLeaves.value = []
     }
   } catch (e) {
     console.error('加载排班数据失败:', e)
@@ -283,13 +316,40 @@ async function loadTemplates() {
 const show = (col, t) => {
   const dateKey = col.date
   const s = schedule.value.find(i => i.date === dateKey && i.time === t)
-  return s ? s.counselorName : ''
+  if (!s) return ''
+
+  // 检查该时段是否在请假期间
+  const slotStartTime = new Date(`${dateKey}T${t.split('-')[0]}`)
+  const slotEndTime = new Date(`${dateKey}T${t.split('-')[1]}`)
+  const isOnLeave = approvedLeaves.value.some(leave => {
+    if (leave.counselorId !== s.counselorId) return false
+    const leaveStart = new Date(leave.startTime)
+    const leaveEnd = new Date(leave.endTime)
+    return slotStartTime < leaveEnd && slotEndTime > leaveStart
+  })
+
+  if (isOnLeave) {
+    return s.counselorName + ' (请假中)'
+  }
+  return s.counselorName
 }
 
 const getCell = (col, t) => {
   const dateKey = col.date
   const s = schedule.value.find(i => i.date === dateKey && i.time === t)
   if (!s) return 'free'
+
+  // 检查该时段是否在请假期间
+  const slotStartTime = new Date(`${dateKey}T${t.split('-')[0]}`)
+  const slotEndTime = new Date(`${dateKey}T${t.split('-')[1]}`)
+  const isOnLeave = approvedLeaves.value.some(leave => {
+    if (leave.counselorId !== s.counselorId) return false
+    const leaveStart = new Date(leave.startTime)
+    const leaveEnd = new Date(leave.endTime)
+    return slotStartTime < leaveEnd && slotEndTime > leaveStart
+  })
+
+  if (isOnLeave) return 'leave'
   return 'busy'
 }
 
@@ -302,6 +362,7 @@ const openCounselorDialog = (col, t) => {
 
 const confirmCounselor = async () => {
   const { date, time } = currentCell.value
+  const [startTime, endTime] = time.split('-')
 
   try {
     if (!selectedCounselorId.value) {
@@ -312,7 +373,7 @@ const confirmCounselor = async () => {
         ElMessage.success('已清空排班')
       }
     } else {
-      // 更新排班
+      // 创建/更新排班
       const counselor = counselors.value.find(c => c.id === selectedCounselorId.value)
       if (!counselor) {
         ElMessage.error('未找到咨询师信息')
@@ -325,16 +386,23 @@ const confirmCounselor = async () => {
         await updateSchedule(existingSchedule.id, {
           counselorId: selectedCounselorId.value,
           counselorName: counselor.name,
-          date,
-          time
+          scheduleDate: date,
+          startTime,
+          endTime,
+          availableSlots: 1,
+          scheduleType: 'REGULAR',
+          status: 1
         })
       } else {
         // 创建新排班
-        await updateSchedule(null, {
+        await createSchedule({
           counselorId: selectedCounselorId.value,
-          counselorName: counselor.name,
-          date,
-          time
+          scheduleDate: date,
+          startTime,
+          endTime,
+          availableSlots: 1,
+          scheduleType: 'REGULAR',
+          status: 1
         })
       }
       ElMessage.success('排班更新成功')
@@ -580,6 +648,13 @@ onMounted(async () => {
   background: #dcfce7;
   color: #166534;
   font-weight: 500;
+}
+
+.leave {
+  background: #fee2e2;
+  color: #991b1b;
+  font-weight: 500;
+  text-decoration: line-through;
 }
 
 .free {

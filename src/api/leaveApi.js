@@ -197,6 +197,22 @@ export function getProcessedLeaveList(params = {}) {
   return request.get('/api/counselor/leave/processed', { params })
 }
 
+/**
+ * 查询已批准的请假列表（用于排班过滤）
+ * GET /api/counselor/leave/approval/list?status=approved
+ * @param {Object} params - 查询参数
+ * @param {string} params.startDate - 开始日期（可选）
+ * @param {string} params.endDate - 结束日期（可选）
+ */
+export function getApprovedLeaveList(params = {}) {
+  return request.get('/api/counselor/leave/approval/list', {
+    params: {
+      status: 'approved',
+      ...params
+    }
+  })
+}
+
 // ==================== 枚举值映射 ====================
 
 /**

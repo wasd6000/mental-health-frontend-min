@@ -2,10 +2,10 @@ import request from './request.js'
 
 /**
  * 获取咨询师列表
- * GET /api/counselor/list
+ * GET /api/consultant/list
  */
 export function getCounselorList(params = {}) {
-  return request.get('/api/counselor/list', { params })
+  return request.get('/api/consultant/list', { params })
 }
 
 /**
