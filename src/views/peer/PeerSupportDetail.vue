@@ -6,10 +6,10 @@
         <div class="deco-blob deco-blob-2"></div>
       </div>
       <div class="header-content">
-        <router-link to="/student/peer-support" class="back-btn">
+        <button @click="goBack" class="back-btn">
           <el-icon><ArrowLeft /></el-icon>
           返回列表
-        </router-link>
+        </button>
         <div class="header-type" v-if="post">
           <el-icon><component :is="typeIcon" /></el-icon>
           {{ post.category || '话题讨论' }}
@@ -196,7 +196,7 @@
         </div>
 
         <div class="nav-section">
-          <router-link to="/student/peer-support" class="nav-link" :style="{ background: typeGradient }">
+          <router-link :to="listPath" class="nav-link" :style="{ background: typeGradient }">
             <el-icon><ArrowLeft /></el-icon>
             <span>返回朋辈互助</span>
           </router-link>
@@ -208,7 +208,7 @@
           <el-icon class="empty-icon"><Link /></el-icon>
         </div>
         <p class="empty-text">未找到该内容</p>
-        <router-link to="/student/peer-support" class="empty-link">
+        <router-link :to="listPath" class="empty-link">
           <el-icon><ArrowLeft /></el-icon>
           返回朋辈互助列表
         </router-link>
@@ -340,6 +340,29 @@ const typeIcon = computed(() => {
   return typeConfig[post.value.category]?.icon || typeConfig['default'].icon
 })
 
+// 根据当前路由动态返回列表页路径
+const listPath = computed(() => {
+  const currentPath = route.path
+  // 如果是领导端的详情页（/admin/leader-peer-support/:id），返回领导端列表
+  if (currentPath.includes('/admin/leader-peer-support/')) {
+    return '/admin/leader-peer-support'
+  }
+  // 如果是院系领导的详情页（/admin/college-peer-support/:id），返回院系领导列表
+  if (currentPath.includes('/admin/college-peer-support/')) {
+    return '/admin/college-peer-support'
+  }
+  // 如果是其他后台角色的详情页（/admin/peer-forum-view/:id 或 /admin/peer-forum-pending/:id），返回查看页面
+  if (currentPath.includes('/admin/peer-forum-view/') || currentPath.includes('/admin/peer-forum-pending/')) {
+    return '/admin/peer-forum-view'
+  }
+  // 其他情况返回学生端列表
+  return '/student/peer-support'
+})
+
+function goBack() {
+  router.push(listPath.value)
+}
+
 function formatDate(iso: string) {
   if (!iso) return ''
   const d = new Date(iso)
@@ -347,7 +370,9 @@ function formatDate(iso: string) {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `${y}-${m}-${day} ${hh}:${mm}`
 }
 
 function formatDateTime(iso: string) {
@@ -359,7 +384,8 @@ function formatDateTime(iso: string) {
   const day = String(d.getDate()).padStart(2, '0')
   const hh = String(d.getHours()).padStart(2, '0')
   const mm = String(d.getMinutes()).padStart(2, '0')
-  return `${y}-${m}-${day} ${hh}:${mm}`
+  const ss = String(d.getSeconds()).padStart(2, '0')
+  return `${y}-${m}-${day} ${hh}:${mm}:${ss}`
 }
 
 async function fetchDetail() {

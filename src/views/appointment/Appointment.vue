@@ -1,18 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import { getAppointmentByIdAsync, updateAppointmentStatusAsync } from '../../api/appointment'
-import { useAppointmentMock } from '../../api/appointmentEnv'
 import type { Appointment } from '../../types/appointment'
 import { getVisitFormConfig, getScaleConfig, getConsentConfig } from '../../api/config'
 import { useRoute } from 'vue-router'
-import { generateFromTemplate } from '../../mock/schedule'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-
-const appointmentMock = useAppointmentMock()
-
-// 咨询师只是维护排班，不是创建预约
-generateFromTemplate()
 
 
 const route = useRoute()
@@ -91,27 +84,24 @@ async function submitVisitInfo() {
 
   try {
     const res = await updateAppointmentStatusAsync(
-      appointment.value.id,
-      'info_done',
-      {
-        visitInfo: {
-          ...visitForm.value,
-        },
-      } as any,
+        appointment.value.id,
+        'info_done',
+        {
+          visitInfo: {
+            ...visitForm.value,
+          },
+        } as any,
     )
 
     if (res.code === 200 && res.data) {
       appointment.value = { ...appointment.value, ...res.data }
     }
   } catch (e: any) {
-    if (!appointmentMock) {
-      ElMessage.warning(
+    // Deleted:if (!appointmentMock) {
+    ElMessage.warning(
         e?.message ||
-          '后端暂未对接来访登记状态；您仍可在下方查看本次预约信息。',
-      )
-    } else {
-      ElMessage.error('提交失败')
-    }
+        '后端暂未对接来访登记状态；您仍可在下方查看本次预约信息。',
+    )
   }
 }
 
@@ -120,7 +110,7 @@ async function submitScale() {
   if (!appointment.value || !activeScale.value ) return
   console.log(' 重新计算 currentStep，status =', appointment.value?.status)
 
-    if (!doneScales.value.includes(activeScale.value)) {
+  if (!doneScales.value.includes(activeScale.value)) {
     doneScales.value.push(activeScale.value)
   }
 
@@ -128,30 +118,28 @@ async function submitScale() {
 
   // 如果全部量表都完成，才进入下一步
   const allDone = scaleConfig.value.every(
-    s => !s.enabled || doneScales.value.includes(s.id)
+      s => !s.enabled || doneScales.value.includes(s.id)
   )
 
   if (allDone) {
     try {
       const res = await updateAppointmentStatusAsync(
-        appointment.value.id,
-        'scale_done',
-        {
-          scaleResult: {
-            ...doneScales.value,
-            mood: '',
-            stressLevel: 0,
-          },
-        } as any,
+          appointment.value.id,
+          'scale_done',
+          {
+            scaleResult: {
+              ...doneScales.value,
+              mood: '',
+              stressLevel: 0,
+            },
+          } as any,
       )
 
       if (res.code === 200 && res.data) {
         appointment.value = { ...appointment.value, ...res.data }
       }
     } catch (e: any) {
-      if (!appointmentMock) {
-        ElMessage.warning(e?.message || '后端暂未对接量表步骤状态')
-      }
+      ElMessage.warning(e?.message || '后端暂未对接量表步骤状态')
     }
   }
 }
@@ -160,30 +148,27 @@ async function submitScale() {
 async function submitSign() {
   if (!appointment.value) return
 
-    if (!signFile.value) {
+  if (!signFile.value) {
     signError.value = '请先上传已签署的知情同意书'
     return
   }
   try {
     const res = await updateAppointmentStatusAsync(
-      appointment.value.id,
-      'sign_done',
-      {
-        signAt: new Date().toISOString(),
-      } as any,
+        appointment.value.id,
+        'sign_done',
+        {
+          signAt: new Date().toISOString(),
+        } as any,
     )
 
     if (res.code === 200 && res.data) {
       appointment.value = { ...appointment.value, ...res.data }
     }
   } catch (e: any) {
-    if (!appointmentMock) {
-      ElMessage.warning(e?.message || '后端暂未对接签署步骤状态')
-    } else {
-      ElMessage.error('提交失败')
-    }
+    ElMessage.warning(e?.message || '后端暂未对接签署步骤状态')
   }
 }
+
 
 onMounted(async () => {
   const id = route.params.id as string

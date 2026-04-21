@@ -59,22 +59,39 @@ export function initSchedule() {
     return schedule
   }
 
-    // 首次初始化：每个时段分配一位随机咨询师（所有咨询师在表格中随机分布）
+  // 首次初始化：每个时段分配一位随机咨询师（所有咨询师在表格中随机分布）
   schedule = [];
   const start = new Date('2026-03-01');
   const end = new Date('2026-07-10');
   let day = new Date(start);
 
-const counselors = getCounselors()   //  统一数据来源
+  const counselors = getCounselors()   //  统一数据来源
 
   while (day <= end) {
     // 跳过周末
-    if (weekDay === 0 || weekDay === 6) continue;
+    const weekDay = day.getDay();
+    if (weekDay === 0 || weekDay === 6) {
+      day.setDate(day.getDate() + 1);
+      continue;
+    }
+
+    const date = toDay(day);
 
     // 为每个工作日生成 7 个时段的排班
     getPeriods().forEach((time) => {
-      schedule.push({ date, time, counselorId, counselorName })
-    })
+      // 随机选择一个咨询师
+      const randomIndex = Math.floor(Math.random() * counselors.length);
+      const counselor = counselors[randomIndex];
+
+      schedule.push({
+        date,
+        time,
+        counselorId: counselor.id,
+        counselorName: counselor.name
+      });
+    });
+
+    day.setDate(day.getDate() + 1);
   }
 
   console.log('schedule size =', schedule.length)
@@ -139,42 +156,38 @@ export function generateFromTemplate() {
   let day = new Date(start);
 
   while (day <= end) {
-    const wd = day.getDay();
-    if (wd === 0 || wd === 6) {
+    // 跳过周末
+    const weekDay = day.getDay();
+    if (weekDay === 0 || weekDay === 6) {
       day.setDate(day.getDate() + 1);
       continue;
     }
 
-    const ds = toDay(day);
+    const date = toDay(day);
+
+    // ✅ 根据星期几从模板中找到对应的排班
     const templateDay = weekTemplate.filter(
-      i => new Date(i.date).getDay() === wd
+        i => new Date(i.date).getDay() === weekDay
     );
 
-    if (templateDay) {
-      getPeriods().forEach(time => {
-        const t = weekTemplate.find(
-          i => new Date(i.date).getDay() === wd && i.time === time
-        );
-        if (t) {
-          // 保留 template 中的扩展字段（如 counselorCollege, onlyCollege, unitType）
-          result.push(Object.assign({
-            date: ds,
-            time,
-            counselorId: t.counselorId,
-            counselorName: t.counselorName,
-          }, {
-            consultant_college: t.consultant_college,
-            only_college: t.only_college,
-            unit_type: t.unit_type
-          }));
-        }
+    // ✅ 为模板中的每个时段生成排班
+    templateDay.forEach((templateItem) => {
+      result.push({
+        date,
+        time: templateItem.time,
+        counselorId: templateItem.counselorId,
+        counselorName: templateItem.counselorName,
+        consultant_college: templateItem.consultant_college,
+        only_college: templateItem.only_college,
+        unit_type: templateItem.unit_type,
+        avoid_colleges: templateItem.avoid_colleges
       });
-    }
+    });
 
     day.setDate(day.getDate() + 1);
   }
 
-  return result;
+  return result;  // ✅ 返回正确的结果
 }
 
 export function getWeekTemplate() {

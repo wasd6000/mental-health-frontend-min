@@ -99,7 +99,7 @@
 
       <!-- 危机预警消息标签页（心理中心、院系领导、校领导、辅导员可见） -->
       <el-tab-pane
-          v-if="['center', 'college', 'leader', 'tutor', 'instructor'].includes(currentRole)"
+          v-if="['center', 'college', 'college_leader', 'leader', 'school_leader', 'tutor', 'instructor'].includes(currentRole)"
           label="危机预警"
           name="crisis"
       >
@@ -620,7 +620,7 @@ async function loadCrisisMessages() {
     }
 
     // 如果是院系领导或辅导员，添加院系ID筛选
-    if ((currentRole.value === 'college' || currentRole.value === 'tutor' || currentRole.value === 'instructor') && currentCollegeId.value) {
+    if ((currentRole.value === 'college' || currentRole.value === 'college_leader' || currentRole.value === 'tutor' || currentRole.value === 'instructor') && currentCollegeId.value) {
       params.collegeId = currentCollegeId.value
     }
 
@@ -922,7 +922,8 @@ function getAppointmentStatusText(status) {
     PENDING: '待确认',
     CONFIRMED: '已确认',
     CANCELLED: '已取消',
-    COMPLETED: '已完成'
+    COMPLETED: '已完成',
+    NO_SHOW: '未到场'
   }
   return map[status] || status
 }

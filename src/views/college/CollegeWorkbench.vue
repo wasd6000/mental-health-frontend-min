@@ -218,6 +218,7 @@ const initCharts = () => {
 }
 
 const loadData = async () => {
+  // 加载统计数据
   try {
     const res = await getStatsOverview()
     if (res.code === 200 && res.data) {
@@ -227,18 +228,22 @@ const loadData = async () => {
       statsData.value[3].value = res.data.consultationCount || 0
     }
   } catch (e) {
+    console.warn('⚠️ 统计数据接口暂不可用，使用演示数据:', e.message)
+    // 使用演示数据
     statsData.value[0].value = 3256
     statsData.value[1].value = 27
     statsData.value[2].value = '91.5%'
     statsData.value[3].value = 156
   }
 
+  // 加载待处理事项
   try {
     const res = await getCenterApprovalList({ status: 'pending' })
     if (res.code === 200) {
       todoList.value = res.data || []
     }
   } catch (e) {
+    console.warn('⚠️ 待处理事项接口暂不可用，使用演示数据:', e.message)
     todoList.value = [
       { id: 1, type: 'crisis', typeText: '危机', content: '红色预警个案待审批', time: '30分钟前', route: '/admin/college-crisis' },
       { id: 2, type: 'report', typeText: '报表', content: '3月份心理健康月报待查阅', time: '今天', route: '/admin/college-report' },
@@ -246,6 +251,7 @@ const loadData = async () => {
     ]
   }
 
+  // 加载危机预警
   try {
     const res = await getCrisisList({ status: 'pending' })
     if (res.code === 200) {
@@ -253,6 +259,7 @@ const loadData = async () => {
       crisisList.value = Array.isArray(list) ? list : []
     }
   } catch (e) {
+    console.warn('⚠️ 危机预警接口暂不可用，使用演示数据:', e.message)
     crisisList.value = [
       { id: 1, studentName: '张某某', level: 'red', levelText: '极高危', description: '存在自杀倾向，需紧急干预' },
       { id: 2, studentName: '李某某', level: 'orange', levelText: '高危', description: '严重抑郁，已安排心理咨询' },

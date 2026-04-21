@@ -235,8 +235,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+<script setup lang="ts">import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Calendar,
@@ -249,10 +248,6 @@ import {
   Warning
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { createAppointmentForStudent } from '../../mock/appointment'
-import { fetchSchedule } from '../../mock/schedule'
-import { consultants } from '../../mock/mock'
-import { getSemester } from '../../api/mock'
 import {
   fetchScheduleList,
   fetchConsultantList,
@@ -265,6 +260,7 @@ import {
   parseAppointmentSubmitData,
 } from '../../api/psychPlatformAppointment.js'
 import { useAppointmentMock, resolveBackendUserIdForAppointmentApi } from '../../api/appointmentEnv'
+import request from '../../api/request.js'
 
 const router = useRouter()
 
@@ -281,6 +277,7 @@ const filterCounselor = ref('')
 const confirmDialogVisible = ref(false)
 const selectedSlot = ref<any>(null)
 const currentWeekStart = ref(new Date())
+const semesterInfo = ref({ start: '', end: '' })
 
 let scheduleUpdateHandler: any
 
@@ -362,8 +359,8 @@ const canGoPrev = computed(() => {
 })
 
 const canGoNext = computed(() => {
-  const semester = getSemester()
-  const semesterEnd = new Date(semester.end)
+  if (!semesterInfo.value.end) return true
+  const semesterEnd = new Date(semesterInfo.value.end)
   const nextWeekStart = new Date(currentWeekStart.value)
   nextWeekStart.setDate(nextWeekStart.getDate() + 7)
   return nextWeekStart <= semesterEnd
@@ -407,9 +404,8 @@ async function refreshSchedule() {
   loading.value = true
 
   try {
-    const semester = getSemester()
-    const semesterStartStr = toDay(semester.start)
-    const semesterEndStr = toDay(semester.end)
+    const semesterStartStr = toDay(semesterInfo.value.start)
+    const semesterEndStr = toDay(semesterInfo.value.end)
 
     if (useBackendAppointment) {
       const [schRes, conRes] = await Promise.all([
@@ -422,7 +418,7 @@ async function refreshSchedule() {
 
       const bookedScheduleIds = new Set<string>()
       const uid =
-        studentId.value || resolveBackendUserIdForAppointmentApi()
+          studentId.value || resolveBackendUserIdForAppointmentApi()
       if (uid) {
         try {
           const appRes = await fetchAppointmentList({
@@ -444,10 +440,10 @@ async function refreshSchedule() {
         const av = row.availableSlots ?? row.available_slots ?? 0
         if (Number(av) <= 0) return
         const expanded = expandScheduleRowToSlots(
-          row,
-          nameMap,
-          semesterStartStr,
-          semesterEndStr,
+            row,
+            nameMap,
+            semesterStartStr,
+            semesterEndStr,
         )
         expanded.forEach((slot) => {
           if (!slot.scheduleId || !slot.date) return
@@ -455,8 +451,9 @@ async function refreshSchedule() {
           if (slot.date >= semesterStartStr && slot.date <= semesterEndStr) {
             availableSlots.push({
               ...slot,
-              avoid_colleges: [],
-              consultant_college_id: '',
+              // 保留后端返回的回避学院信息
+              avoid_colleges: row.avoidColleges || row.avoid_colleges || [],
+              consultant_college_id: row.consultantCollegeId || row.consultant_college_id || '',
             })
           }
         })
@@ -467,52 +464,12 @@ async function refreshSchedule() {
       dates.value = Array.from(dateSet).sort()
       allAvailableSlots.value = availableSlots
     } else {
-      const schedule = await fetchSchedule()
-
-      if (!schedule || schedule.length === 0) {
-        dates.value = []
-        slots.value = []
-        allAvailableSlots.value = []
-        return
-      }
-
-      const storedDb = localStorage.getItem('MOCK_DB') || '{}'
-      const db = JSON.parse(storedDb)
-      const appointments = db.appointments || []
-
-      const used = new Set<string>()
-      appointments.forEach((a: any) => {
-        used.add(`${toDay(a.appointmentDate)}|${a.appointmentTime}`)
-      })
-
-      const dateSet = new Set<string>()
-      const availableSlots: any[] = []
-
-      schedule.forEach((slot: any) => {
-        const dateStr = toDay(slot.date)
-        if (dateStr >= semesterStartStr && dateStr <= semesterEndStr) {
-          if (!used.has(`${dateStr}|${slot.time}`)) {
-            dateSet.add(dateStr)
-            availableSlots.push(slot)
-          }
-        }
-      })
-
-      dates.value = Array.from(dateSet).sort()
-      allAvailableSlots.value = availableSlots.map(s => {
-        const cons = consultants.find(
-          c => c.id === s.counselorId || c.account === s.counselorId
-        )
-
-        return {
-          ...s,
-          counselorName: s.counselorName || s.name || '',
-          avoid_colleges: cons && Array.isArray(cons.avoid_college_ids)
-            ? cons.avoid_college_ids
-            : [],
-          consultant_college_id: s.consultant_college_id || (cons && cons.college_id) || ''
-        }
-      })
+      // Mock模式已禁用，提示用户
+      ElMessage.warning('Mock模式已禁用，请确保后端服务正常运行')
+      dates.value = []
+      slots.value = []
+      allAvailableSlots.value = []
+      return
     }
 
     if (!selectedDate.value && dates.value.length > 0) {
@@ -523,10 +480,11 @@ async function refreshSchedule() {
 
     updateSlots()
   } catch (e) {
+    console.error('加载排班数据失败:', e)
     dates.value = []
     slots.value = []
     allAvailableSlots.value = []
-    ElMessage.error('加载排班数据失败')
+    ElMessage.error('加载排班数据失败，请检查网络连接')
   } finally {
     loading.value = false
   }
@@ -576,25 +534,11 @@ async function confirmAppointment() {
         ElMessage.error(parsed.message || res?.msg || '预约失败')
       }
     } else {
-      const res = await createAppointmentForStudent({
-        studentId: studentId.value,
-        counselorId: selectedSlot.value.counselorId,
-        counselorName: selectedSlot.value.counselorName,
-        date: selectedSlot.value.date,
-        create_time: selectedSlot.value.time,
-        end_time: selectedSlot.value.time
-      })
-
-      if (res.code === 200) {
-        ElMessage.success('预约创建成功')
-        confirmDialogVisible.value = false
-        router.push(`/appointment/${res.data.id}`)
-      } else {
-        ElMessage.error('预约创建失败')
-      }
+      ElMessage.warning('Mock模式已禁用，请使用后端接口')
     }
-  } catch (e) {
-    ElMessage.error('预约创建失败')
+  } catch (e: any) {
+    console.error('预约创建失败:', e)
+    ElMessage.error(e.message || '预约创建失败，请稍后重试')
   } finally {
     submitting.value = false
   }
@@ -624,6 +568,21 @@ function isAvoidedByCollege(row: any) {
 onMounted(async () => {
   studentId.value = resolveBackendUserIdForAppointmentApi()
   currentWeekStart.value = getWeekStart(new Date())
+
+  // 获取学期信息
+  try {
+    const semRes = await request.get('/api/semester/current')
+    semesterInfo.value = {
+      start: semRes.data?.start || semRes.data?.startDate,
+      end: semRes.data?.end || semRes.data?.endDate
+    }
+  } catch (e) {
+    console.warn('获取学期信息失败，使用默认值')
+    semesterInfo.value = {
+      start: '2026-03-01',
+      end: '2026-07-10'
+    }
+  }
 
   await refreshSchedule()
 

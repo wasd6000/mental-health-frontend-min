@@ -202,6 +202,7 @@ const loading = ref(false)
 let refreshTimer = null
 
 const overallStatus = computed(() => {
+  if (services.value.length === 0) return { type: 'info', text: '加载中...' }
   const hasError = services.value.some((s) => s.status === 'error')
   const hasWarning = services.value.some((s) => s.status === 'warning')
   if (hasError) return { type: 'danger', text: '异常' }
@@ -215,7 +216,8 @@ const filteredLogs = computed(() => {
   return allLogs.value.filter(
       (l) =>
           l.operator?.toLowerCase().includes(k) ||
-          l.module?.toLowerCase().includes(k)
+          l.module?.toLowerCase().includes(k) ||
+          l.action?.toLowerCase().includes(k)
   )
 })
 

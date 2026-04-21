@@ -135,7 +135,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, markRaw } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   User,
@@ -155,10 +155,10 @@ import { getCollegeOptions } from '../../api/commonApi'
 const router = useRouter()
 
 const statsData = ref([
-  { label: '全校学生总数', value: 0, color: 'linear-gradient(135deg, #3b82f6, #2563eb)', icon: User },
-  { label: '危机个案总数', value: 0, color: 'linear-gradient(135deg, #ef4444, #dc2626)', icon: Warning, trend: -8 },
-  { label: '全校测评完成率', value: '0%', color: 'linear-gradient(135deg, #10b981, #059669)', icon: DataAnalysis, trend: 3.2 },
-  { label: '本月咨询服务量', value: 0, color: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', icon: Calendar, trend: 12 },
+  { label: '全校学生总数', value: 0, color: 'linear-gradient(135deg, #3b82f6, #2563eb)', icon: markRaw(User) },
+  { label: '危机个案总数', value: 0, color: 'linear-gradient(135deg, #ef4444, #dc2626)', icon: markRaw(Warning), trend: -8 },
+  { label: '全校测评完成率', value: '0%', color: 'linear-gradient(135deg, #10b981, #059669)', icon: markRaw(DataAnalysis), trend: 3.2 },
+  { label: '本月咨询服务量', value: 0, color: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', icon: markRaw(Calendar), trend: 12 },
 ])
 
 const todoList = ref([])
@@ -171,7 +171,7 @@ const crisisStats = ref([
 ])
 
 const collegeOverview = ref([])
-const trendType = ref('month')
+const timeRange = ref('month')
 
 const trendChartRef = ref()
 const rankChartRef = ref()
@@ -180,29 +180,30 @@ let charts = []
 const quickActions = [
   {
     label: '数据统计',
-    icon: TrendCharts,
+    icon: markRaw(TrendCharts),
     color: 'linear-gradient(135deg, #3b82f6, #2563eb)',
     handler: () => router.push('/admin/leader-statistics'),
   },
   {
     label: '报表查看',
-    icon: Document,
+    icon: markRaw(Document),
     color: 'linear-gradient(135deg, #10b981, #059669)',
     handler: () => router.push('/admin/leader-report'),
   },
   {
     label: '危机管理',
-    icon: Warning,
+    icon: markRaw(Warning),
     color: 'linear-gradient(135deg, #ef4444, #dc2626)',
     handler: () => router.push('/admin/leader-crisis'),
   },
   {
     label: '院系管理',
-    icon: School,
-    color: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+    icon: markRaw(School),
+    color: 'linear-gradient(135deg, #f59e0b, #d97706)',
     handler: () => router.push('/admin/leader-colleges'),
   },
 ]
+
 
 const getProgressColor = (rate) => {
   if (rate >= 90) {
@@ -233,9 +234,9 @@ const handleTodo = (todo) => {
 const initCharts = () => {
   if (trendChartRef.value) {
     const chart = echarts.init(trendChartRef.value)
-    const xData = trendType.value === 'month'
-      ? ['1月', '2月', '3月', '4月', '5月', '6月']
-      : ['Q1', 'Q2', 'Q3', 'Q4']
+    const xData = timeRange.value === 'month'
+        ? ['1月', '2月', '3月', '4月', '5月', '6月']
+        : ['Q1', 'Q2', 'Q3', 'Q4']
     chart.setOption({
       tooltip: { trigger: 'axis' },
       legend: { data: ['测评完成率', '健康指数', '危机率'] },
@@ -246,21 +247,21 @@ const initCharts = () => {
           name: '测评完成率',
           type: 'line',
           smooth: true,
-          data: trendType.value === 'month' ? [88, 90, 91, 92, 93, 94] : [89, 91, 93, 94],
+          data: timeRange.value === 'month' ? [88, 90, 91, 92, 93, 94] : [89, 91, 93, 94],
           itemStyle: { color: '#3b82f6' },
         },
         {
           name: '健康指数',
           type: 'line',
           smooth: true,
-          data: trendType.value === 'month' ? [82, 83, 84, 85, 86, 87] : [82, 84, 86, 87],
+          data: timeRange.value === 'month' ? [82, 83, 84, 85, 86, 87] : [82, 84, 86, 87],
           itemStyle: { color: '#10b981' },
         },
         {
           name: '危机率',
           type: 'line',
           smooth: true,
-          data: trendType.value === 'month' ? [2.5, 2.3, 2.1, 1.9, 1.8, 1.6] : [2.4, 2.0, 1.8, 1.6],
+          data: timeRange.value === 'month' ? [2.5, 2.3, 2.1, 1.9, 1.8, 1.6] : [2.4, 2.0, 1.8, 1.6],
           itemStyle: { color: '#ef4444' },
         },
       ],
@@ -352,7 +353,7 @@ const loadData = async () => {
   }
 }
 
-watch(trendType, () => {
+watch(timeRange, () => {
   charts.forEach((c) => c.dispose())
   charts = []
   setTimeout(initCharts, 100)

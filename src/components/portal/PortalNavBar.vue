@@ -240,13 +240,24 @@ function handlePeerSupportClick() {
     return
   }
 
-  const role = localStorage.getItem('user_role') ||
-      localStorage.getItem('User_role') ||
-      localStorage.getItem('admin_role')
+  // 优先从 admin_role 获取（后台用户登录时会设置这个字段）
+  const role = localStorage.getItem('admin_role') ||
+      localStorage.getItem('user_role') ||
+      localStorage.getItem('User_role')
 
-  if (['admin', 'center', 'counselor', 'tutor', 'instructor', 'college', 'leader'].includes(role)) {
-    router.push('/admin/peer-forum')
+  console.log('[NavBar] 朋辈互助点击 - 当前角色:', role)
+
+  // 后台管理角色列表（包括所有6个后台身份）
+  const adminRoles = ['admin', 'center', 'counselor', 'tutor', 'instructor',
+    'college', 'college_leader', 'leader', 'school_leader']
+
+  if (adminRoles.includes(role)) {
+    // 后台用户跳转到带Layout的同辈互助页面
+    console.log('[NavBar] 跳转到后台管理端')
+    router.push('/admin/leader-peer-support')
   } else {
+    // 学生用户跳转到学生端同辈互助
+    console.log('[NavBar] 跳转到学生端')
     router.push('/student/peer-support')
   }
 }

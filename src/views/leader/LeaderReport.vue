@@ -203,7 +203,15 @@ const collegeList = ref([
 const previewVisible = ref(false)
 const isFullscreen = ref(false)
 const currentReport = ref(null)
-const reportDetail = ref({})
+const reportDetail = ref({
+  totalStudents: 0,
+  assessmentRate: 0,
+  crisisCount: 0,
+  consultCount: 0,
+  crisisData: [],
+  highlights: '',
+  suggestions: '',
+})
 const reportChartRef = ref()
 let reportChart = null
 
@@ -223,8 +231,16 @@ const loadReports = async () => {
       pageSize: pageSize.value,
     })
     if (res.code === 200) {
-      reportList.value = res.data?.list || res.data || []
-      totalCount.value = res.data?.total || reportList.value.length
+      // 确保 reportList 始终是数组
+      const data = res.data
+      if (Array.isArray(data)) {
+        reportList.value = data
+      } else if (data && typeof data === 'object') {
+        reportList.value = data.list || data.records || []
+        totalCount.value = data.total || reportList.value.length
+      } else {
+        reportList.value = []
+      }
     }
   } catch (e) {
     reportList.value = [
@@ -240,7 +256,15 @@ const loadReports = async () => {
   try {
     const res = await getReportHistory({ year: selectedYear.value, month: '03', scope: 'college' })
     if (res.code === 200) {
-      collegeReportList.value = res.data || []
+      // 确保 collegeReportList 始终是数组
+      const data = res.data
+      if (Array.isArray(data)) {
+        collegeReportList.value = data
+      } else if (data && typeof data === 'object') {
+        collegeReportList.value = data.list || data.records || []
+      } else {
+        collegeReportList.value = []
+      }
     }
   } catch (e) {
     collegeReportList.value = [
@@ -258,7 +282,16 @@ const viewReport = async (row) => {
   try {
     const res = await postReportPreview({ reportId: row.id })
     if (res.code === 200) {
-      reportDetail.value = res.data
+      // 确保 reportDetail 包含所有必需的字段
+      reportDetail.value = {
+        totalStudents: res.data?.totalStudents || 0,
+        assessmentRate: res.data?.assessmentRate || 0,
+        crisisCount: res.data?.crisisCount || 0,
+        consultCount: res.data?.consultCount || 0,
+        crisisData: Array.isArray(res.data?.crisisData) ? res.data.crisisData : [],
+        highlights: res.data?.highlights || '',
+        suggestions: res.data?.suggestions || '',
+      }
     }
   } catch (e) {
     reportDetail.value = {
@@ -279,6 +312,7 @@ const viewReport = async (row) => {
   previewVisible.value = true
   setTimeout(initReportChart, 100)
 }
+
 
 const initReportChart = () => {
   if (!reportChartRef.value) {

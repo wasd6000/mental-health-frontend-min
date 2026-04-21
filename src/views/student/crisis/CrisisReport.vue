@@ -111,11 +111,11 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue'
+<script setup>import { ref, computed } from 'vue'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { reportCrisis } from '../../../api/crisisApi'
+import { reportCrisis, buildCrisisReportCreateBody } from '../../../api/crisisApi'
+import { resolveBackendUserIdForAppointmentApi } from '../../../api/appointmentEnv'
 
 const form = ref({
   reportType: 'self',
@@ -163,11 +163,11 @@ const severities = [
 ]
 
 const isFormValid = computed(() => {
-  return form.value.severity && 
-         form.value.description && 
-         form.value.contactInfo.name && 
-         form.value.contactInfo.phone && 
-         (form.value.reportType === 'self' || 
+  return form.value.severity &&
+      form.value.description &&
+      form.value.contactInfo.name &&
+      form.value.contactInfo.phone &&
+      (form.value.reportType === 'self' ||
           (form.value.otherInfo.name && form.value.otherInfo.studentId))
 })
 
@@ -180,21 +180,113 @@ const submitReport = async () => {
   }
   submitting.value = true
   try {
-    await reportCrisis({
-      reportType: form.value.reportType,
-      severity: form.value.severity,
+    // 使用标准工具函数获取当前用户ID
+    const currentStudentId = resolveBackendUserIdForAppointmentApi()
+
+    console.log('当前用户ID:', currentStudentId)
+    console.log('localStorage中的所有键:', Object.keys(localStorage))
+
+    if (!currentStudentId && form.value.reportType === 'self') {
+      ElMessage.error('无法获取当前用户ID，请重新登录')
+      console.error('localStorage内容:', {
+        userId: localStorage.getItem('userId'),
+        user_id: localStorage.getItem('user_id'),
+        studentId: localStorage.getItem('studentId'),
+        token: localStorage.getItem('token')?.substring(0, 20) + '...'
+      })
+      submitting.value = false
+      return
+    }
+
+    // 构建符合后端要求的请求体
+    const payload = buildCrisisReportCreateBody({
+      // 必填：学生ID
+      studentId: form.value.reportType === 'other' ? form.value.otherInfo.studentId : currentStudentId,
+
+      // 必填：上报类型（映射为后端枚举）
+      type: mapReportTypeToBackend(form.value.reportType),
+
+      // 必填：危机等级（映射为后端枚举）
+      level: form.value.severity,
+
+      // 必填：事件描述
       description: form.value.description,
-      otherInfo: form.value.reportType === 'other' ? form.value.otherInfo : undefined,
-      contactInfo: form.value.contactInfo,
-      emergency: form.value.emergency === 'true'
+
+      // 必填：风险评估（使用联系人信息和紧急程度）
+      riskAssessment: buildRiskAssessment(),
+
+      // 其他可选字段
+      measures: '',
+      studentName: form.value.reportType === 'other' ? form.value.otherInfo.name : '',
+      gender: '',
+      className: '',
+      phone: form.value.contactInfo.phone,
+      dorm: '',
+      discoverTime: new Date(),
+      emergencyContact: form.value.contactInfo.name,
+      emergencyPhone: form.value.contactInfo.phone,
+      emergencyRelation: '',
+      notifiedParent: false,
     })
+
+    console.log('危机上报请求数据:', payload)
+
+    await reportCrisis(payload)
     ElMessage.success('上报成功！我们将尽快与您联系')
     resetForm()
   } catch (e) {
-    ElMessage.error('上报失败，请稍后重试')
+    console.error('危机上报失败:', e)
+    ElMessage.error(e?.response?.data?.msg || e?.message || '上报失败，请稍后重试')
   } finally {
     submitting.value = false
   }
+}
+
+// 将前端的上报类型映射到后端的枚举值
+function mapReportTypeToBackend(reportType) {
+  if (reportType === 'self') {
+    return 'SELF_HARM' // 本人危机默认为自伤行为
+  } else {
+    return 'OTHER' // 他人危机默认为其他
+  }
+}
+
+// 构建风险评估内容
+function buildRiskAssessment() {
+  const parts = []
+
+  // 紧急程度
+  if (form.value.emergency === 'true') {
+    parts.push('【紧急程度】紧急')
+  } else {
+    parts.push('【紧急程度】非紧急')
+  }
+
+  // 联系人信息
+  if (form.value.contactInfo.name) {
+    parts.push(`【联系人】${form.value.contactInfo.name}`)
+  }
+  if (form.value.contactInfo.phone) {
+    parts.push(`【联系电话】${form.value.contactInfo.phone}`)
+  }
+  if (form.value.contactInfo.email) {
+    parts.push(`【邮箱】${form.value.contactInfo.email}`)
+  }
+
+  // 如果是他人危机，添加涉及人员信息
+  if (form.value.reportType === 'other') {
+    if (form.value.otherInfo.name) {
+      parts.push(`【涉及人员姓名】${form.value.otherInfo.name}`)
+    }
+    if (form.value.otherInfo.studentId) {
+      parts.push(`【涉及人员学号】${form.value.otherInfo.studentId}`)
+    }
+    if (form.value.otherInfo.contact) {
+      parts.push(`【涉及人员联系方式】${form.value.otherInfo.contact}`)
+    }
+  }
+
+  return parts.join('\n') || '无'
 }
 
 const getSeverityColor = (value) => {

@@ -128,7 +128,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, markRaw } from 'vue'
 import { Download, User, Warning, TrendCharts, Document, School } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
@@ -137,7 +137,7 @@ import { exportByApi } from '../../utils/exporter'
 
 const dateRange = ref([])
 const filterCollege = ref('')
-const trendPeriod = ref('month')
+const timeRange = ref('month')
 
 const collegeList = ref([
   { label: '计算机学院', value: 'cs' },
@@ -151,10 +151,10 @@ const collegeList = ref([
 ])
 
 const overviewData = ref([
-  { label: '学生总数', value: 28560, icon: User, iconColor: '#3b82f6' },
-  { label: '测评完成率', value: '93.2%', icon: TrendCharts, iconColor: '#10b981', compare: 3.2, comparePositive: true },
-  { label: '危机个案总数', value: 186, icon: Warning, iconColor: '#ef4444', compare: -8, comparePositive: false },
-  { label: '咨询服务量', value: 1256, icon: Document, iconColor: '#8b5cf6', compare: 12, comparePositive: true },
+  { label: '学生总数', value: 28560, icon: markRaw(User), iconColor: '#3b82f6' },
+  { label: '测评完成率', value: '93.2%', icon: markRaw(TrendCharts), iconColor: '#10b981', compare: 3.2, comparePositive: true },
+  { label: '危机个案总数', value: 186, icon: markRaw(Warning), iconColor: '#ef4444', compare: -8, comparePositive: false },
+  { label: '咨询服务量', value: 1256, icon: markRaw(Document), iconColor: '#8b5cf6', compare: 12, comparePositive: true },
 ])
 
 const collegeTableData = ref([])
@@ -217,9 +217,9 @@ const initCharts = () => {
   if (trendChartRef.value) {
     const chart = echarts.init(trendChartRef.value)
     let xData = ['1月', '2月', '3月', '4月', '5月', '6月']
-    if (trendPeriod.value === 'week') {
+    if (timeRange.value === 'week') {
       xData = ['第1周', '第2周', '第3周', '第4周']
-    } else if (trendPeriod.value === 'quarter') {
+    } else if (timeRange.value === 'quarter') {
       xData = ['Q1', 'Q2', 'Q3', 'Q4']
     }
     chart.setOption({
@@ -415,7 +415,7 @@ const viewCollegeDetail = (row) => {
   ElMessage.info(`查看 ${row.name} 详情`)
 }
 
-watch(trendPeriod, () => {
+watch(timeRange, () => {
   setTimeout(initCharts, 100)
 })
 
@@ -428,6 +428,7 @@ onUnmounted(() => {
   charts.forEach((c) => c.dispose())
 })
 </script>
+
 
 <style scoped>
 .leader-statistics {

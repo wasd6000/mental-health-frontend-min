@@ -248,19 +248,29 @@ const goPeerSupport = () => {
       localStorage.getItem('access_token')
 
   if (!token) {
+    // 未登录，跳转到学生端同辈互助（需要登录）
     router.push('/student/peer-support')
     return
   }
 
-  const role = localStorage.getItem('user_role') ||
-      localStorage.getItem('User_role') ||
-      localStorage.getItem('admin_role')
+  // 获取用户角色（优先从 admin_role 获取，因为后台用户登录时会设置这个字段）
+  const role = localStorage.getItem('admin_role') ||
+      localStorage.getItem('user_role') ||
+      localStorage.getItem('User_role')
 
-  if (['center', 'college', 'college_leader'].includes(role)) {
-    router.push('/admin/peer-forum')
-  } else if (['admin', 'counselor', 'tutor', 'instructor', 'leader', 'school_leader'].includes(role)) {
-    router.push('/admin/peer-forum')
+  console.log('[goPeerSupport] 当前角色:', role)
+
+  // 后台管理角色列表（包括所有6个后台身份）
+  const adminRoles = ['admin', 'center', 'counselor', 'tutor', 'instructor',
+    'college', 'college_leader', 'leader', 'school_leader']
+
+  if (adminRoles.includes(role)) {
+    // 后台用户跳转到带Layout的同辈互助页面
+    console.log('[goPeerSupport] 跳转到后台管理端')
+    router.push('/admin/leader-peer-support')
   } else {
+    // 学生用户跳转到学生端同辈互助
+    console.log('[goPeerSupport] 跳转到学生端')
     router.push('/student/peer-support')
   }
 }

@@ -1,12 +1,63 @@
 <template>
   <div class="admin-peer-forum">
     <div class="page-header">
-      <h2>朋辈互助论坛管理</h2>
-      <p class="desc">处理待审核帖子与举报内容</p>
+      <h2>{{ getPageTitle }}</h2>
+      <p class="desc">{{ getPageDesc }}</p>
     </div>
 
     <el-tabs v-model="activeTab">
-      <el-tab-pane label="待审核帖子" name="pending">
+      <el-tab-pane label="所有帖子" name="posts">
+        <div class="toolbar">
+          <el-input v-model="postKeyword" placeholder="搜索标题..." clearable style="width: 240px" @keyup.enter="loadPosts" />
+          <el-select v-model="postCategory" placeholder="板块" clearable style="width: 160px" @change="loadPosts">
+            <el-option label="全部" value="" />
+            <el-option label="话题讨论" value="话题讨论" />
+            <el-option label="经验分享" value="经验分享" />
+            <el-option label="互助知识" value="互助知识" />
+            <el-option label="朋辈咨询" value="朋辈咨询" />
+            <el-option label="心理委员值班" value="心理委员值班" />
+            <el-option label="志愿服务" value="志愿服务" />
+          </el-select>
+          <el-button type="primary" @click="loadPosts">刷新</el-button>
+        </div>
+
+        <el-table :data="postList" style="width: 100%" v-loading="loadingPosts">
+          <el-table-column prop="createdAt" label="时间" width="170">
+            <template #default="{ row }">
+              {{ formatDateTime(row.createdAt) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="category" label="板块" width="120" />
+          <el-table-column prop="title" label="标题" min-width="240" />
+          <el-table-column prop="authorDisplay" label="作者" width="140" />
+          <el-table-column prop="status" label="状态" width="100">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 'approved' ? 'success' : row.status === 'pending' ? 'warning' : 'danger'">
+                {{ row.status === 'approved' ? '已通过' : row.status === 'pending' ? '待审核' : '已驳回' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="200" fixed="right">
+            <template #default="{ row }">
+              <el-button size="small" @click="goDetail(row.id)">查看</el-button>
+              <el-button v-if="canAudit && row.status !== 'approved'" size="small" type="success" @click="approve(row.id)">通过</el-button>
+              <el-button v-if="canAudit && row.status !== 'rejected'" size="small" type="danger" plain @click="reject(row.id)">驳回</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div class="pager" v-if="postTotal > postPageSize">
+          <el-pagination
+              v-model:current-page="postPage"
+              v-model:page-size="postPageSize"
+              layout="prev, pager, next"
+              :total="postTotal"
+              @current-change="loadPosts"
+          />
+        </div>
+      </el-tab-pane>
+
+      <el-tab-pane v-if="canShowPending" label="待审核帖子" name="pending">
         <div class="toolbar">
           <el-button type="primary" @click="loadPending">刷新</el-button>
         </div>
@@ -31,16 +82,16 @@
 
         <div class="pager" v-if="pendingTotal > pendingPageSize">
           <el-pagination
-            v-model:current-page="pendingPage"
-            v-model:page-size="pendingPageSize"
-            layout="prev, pager, next"
-            :total="pendingTotal"
-            @current-change="loadPending"
+              v-model:current-page="pendingPage"
+              v-model:page-size="pendingPageSize"
+              layout="prev, pager, next"
+              :total="pendingTotal"
+              @current-change="loadPending"
           />
         </div>
       </el-tab-pane>
 
-      <el-tab-pane label="举报处理" name="reports">
+      <el-tab-pane v-if="canShowReports" label="举报处理" name="reports">
         <div class="toolbar">
           <el-select v-model="reportStatus" style="width: 160px" @change="loadReports">
             <el-option label="待处理" value="pending" />
@@ -69,10 +120,10 @@
           <el-table-column label="操作" width="140" fixed="right">
             <template #default="{ row }">
               <el-button
-                v-if="row.status !== 'handled'"
-                size="small"
-                type="success"
-                @click="markReportHandled(row.id)"
+                  v-if="canAudit && row.status !== 'handled'"
+                  size="small"
+                  type="success"
+                  @click="markReportHandled(row.id)"
               >
                 标记已处理
               </el-button>
@@ -82,11 +133,11 @@
 
         <div class="pager" v-if="reportTotal > reportPageSize">
           <el-pagination
-            v-model:current-page="reportPage"
-            v-model:page-size="reportPageSize"
-            layout="prev, pager, next"
-            :total="reportTotal"
-            @current-change="loadReports"
+              v-model:current-page="reportPage"
+              v-model:page-size="reportPageSize"
+              layout="prev, pager, next"
+              :total="reportTotal"
+              @current-change="loadReports"
           />
         </div>
       </el-tab-pane>
@@ -118,8 +169,8 @@
       <el-empty v-else description="加载失败" />
       <template #footer>
         <el-button @click="postDetailVisible = false">关闭</el-button>
-        <el-button v-if="postDetail && postDetail.status !== 'approved'" type="success" @click="approveAndClose(postDetail.id)">通过</el-button>
-        <el-button v-if="postDetail && postDetail.status !== 'approved'" type="danger" plain @click="rejectAndClose(postDetail.id)">驳回</el-button>
+        <el-button v-if="canAudit && postDetail && postDetail.status !== 'approved'" type="success" @click="approveAndClose(postDetail.id)">通过</el-button>
+        <el-button v-if="canAudit && postDetail && postDetail.status !== 'approved'" type="danger" plain @click="rejectAndClose(postDetail.id)">驳回</el-button>
       </template>
     </el-dialog>
 
@@ -134,15 +185,85 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
-import { adminListPendingPosts, adminReviewPost, adminListReports, adminHandleReport, getPostDetail } from '@/api/peerForumApi.js'
+import { listPosts, adminListPendingPosts, adminReviewPost, adminListReports, adminHandleReport, getPostDetail } from '@/api/peerForumApi.js'
 import type { ForumPost, ForumReport } from '@/types/peerForum.js'
 
 const router = useRouter()
-const activeTab = ref<'pending' | 'reports'>('pending')
+const route = useRoute()
+
+// 判断是否为领导角色（只读权限）
+const isLeaderRole = computed(() => {
+  const role = localStorage.getItem('admin_role') || localStorage.getItem('user_role')
+  return ['leader', 'school_leader', 'college', 'college_leader'].includes(role)
+})
+
+// 判断是否为审核模式（根据路由路径）
+const isAuditMode = computed(() => {
+  const path = route.path
+  return path.includes('audit') || path.includes('pending') || path.includes('posts') || path.includes('reports')
+})
+
+// 是否可以执行审核操作（非领导角色且是审核模式）
+const canAudit = computed(() => !isLeaderRole.value && isAuditMode.value)
+
+// 是否显示待审核标签页（审核模式下且非领导角色）
+const canShowPending = computed(() => isAuditMode.value && !isLeaderRole.value)
+
+// 是否显示举报处理标签页（审核模式下）
+const canShowReports = computed(() => isAuditMode.value)
+
+// 页面标题
+const getPageTitle = computed(() => {
+  if (isLeaderRole.value) return '同辈互助查看'
+  if (isAuditMode.value) return '同辈互助审核'
+  return '同辈互助管理'
+})
+
+// 页面描述
+const getPageDesc = computed(() => {
+  if (isLeaderRole.value) return '查看所有已通过的朋辈互助帖子'
+  if (isAuditMode.value) return '审核待处理的帖子与举报内容'
+  return '处理待审核帖子与举报内容'
+})
+
+// 根据路由路径确定默认激活的标签页
+const getDefaultTab = () => {
+  const path = route.path
+  if (path.includes('/pending')) return 'pending'
+  if (path.includes('/reports')) return 'reports'
+  if (path.includes('/posts')) return 'posts'
+  // 如果是审核模式，默认显示待审核
+  if (isAuditMode.value && !isLeaderRole.value) return 'pending'
+  // 如果是领导角色或非审核模式，默认显示所有帖子
+  return 'posts'
+}
+
+const activeTab = ref<'pending' | 'reports' | 'posts'>(getDefaultTab())
+
+// 监听路由变化，自动切换标签页
+watch(() => route.path, (newPath) => {
+  if (newPath.includes('/pending')) {
+    activeTab.value = 'pending'
+  } else if (newPath.includes('/reports')) {
+    activeTab.value = 'reports'
+  } else if (newPath.includes('/posts')) {
+    activeTab.value = 'posts'
+  } else if (newPath.includes('audit')) {
+    // 审核模式，默认显示待审核
+    if (!isLeaderRole.value) {
+      activeTab.value = 'pending'
+    } else {
+      activeTab.value = 'posts'
+    }
+  } else if (newPath.includes('peer-support')) {
+    // 查看模式，只显示所有帖子
+    activeTab.value = 'posts'
+  }
+})
 
 function formatDateTime(iso: string) {
   if (!iso) return ''
@@ -252,6 +373,34 @@ async function confirmReject() {
   }
 }
 
+// all posts
+const loadingPosts = ref(false)
+const postList = ref<ForumPost[]>([])
+const postTotal = ref(0)
+const postPage = ref(1)
+const postPageSize = ref(10)
+const postKeyword = ref('')
+const postCategory = ref('')
+
+async function loadPosts() {
+  loadingPosts.value = true
+  try {
+    const res = await listPosts({
+      page: postPage.value,
+      pageSize: postPageSize.value,
+      keyword: postKeyword.value || undefined,
+      category: postCategory.value || undefined,
+      status: undefined, // 不限制状态，显示所有帖子
+    })
+    postList.value = res.list
+    postTotal.value = res.total
+  } catch (e: any) {
+    ElMessage.error(e?.message || '加载失败')
+  } finally {
+    loadingPosts.value = false
+  }
+}
+
 // reports
 const loadingReports = ref(false)
 const reportList = ref<ForumReport[]>([])
@@ -288,8 +437,22 @@ async function markReportHandled(id: string) {
 }
 
 onMounted(async () => {
-  await loadPending()
-  await loadReports()
+  // 根据当前激活的标签页加载对应数据
+  if (activeTab.value === 'posts') {
+    await loadPosts()
+  } else if (activeTab.value === 'pending') {
+    await loadPending()
+  } else if (activeTab.value === 'reports') {
+    await loadReports()
+  }
+
+  // 预加载其他两个标签页的数据（可选，提升用户体验）
+  if (activeTab.value !== 'pending') {
+    loadPending().catch(() => {})
+  }
+  if (activeTab.value !== 'reports') {
+    loadReports().catch(() => {})
+  }
 })
 </script>
 

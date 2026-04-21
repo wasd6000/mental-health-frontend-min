@@ -13,23 +13,24 @@
         <input v-model="form.verificationCode" placeholder="图形验证码" />
         <img :src="captchaImg" class="captcha-img" alt="" @click="loadCaptcha" title="刷新" />
       </div>
-      <button @click="login">登录</button>
-      <div class="dev-tip">
-        <span class="dev-label">开发者</span>
-        <button type="button" class="dev-btn" @click="devLogin">快捷登录（dev_counselor / dev123）</button>
-      </div>
+    </div>
+    <button @click="login">登录</button>
+    <div class="quick-login-tips">
+      <span class="tip-label">快捷测试：</span>
+      <el-button size="small" @click="quickLogin('test_college_leader')">院系领导</el-button>
+      <el-button size="small" @click="quickLogin('test_admin')">管理员</el-button>
+      <el-button size="small" @click="quickLogin('test_counselor')">咨询师</el-button>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted } from 'vue'
+<script setup>import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { adminLogin } from '../../api/mock'
 import { login as apiLogin, fetchVerificationCode } from '../../api/auth'
 import { setAuthToken } from '../../api/request'
 import { isApiSuccess } from '../../api/helpers.js'
 import { ArrowLeft } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 
@@ -62,9 +63,9 @@ const loadCaptcha = async () => {
 
 onMounted(() => loadCaptcha())
 
-const devLogin = () => {
-  form.value.username = 'dev_counselor'
-  form.value.password = 'dev123'
+const quickLogin = (username) => {
+  form.value.username = username
+  form.value.password = '123456' // 请根据实际密码修改
   login()
 }
 
@@ -93,11 +94,11 @@ const login = async () => {
           throw new Error(errMsg)
         }
         const token =
-          d.token ||
-          d.accessToken ||
-          Object.values(d || {}).find(
-            (v) => typeof v === 'string' && v.includes('.'),
-          )
+            d.token ||
+            d.accessToken ||
+            Object.values(d || {}).find(
+                (v) => typeof v === 'string' && v.includes('.'),
+            )
         const user = d.userInfo || d
         if (token) {
           setAuthToken(token)
@@ -116,8 +117,8 @@ const login = async () => {
         localStorage.setItem('user_id', uid)
         localStorage.setItem('user_token', user.username || form.value.username)
         localStorage.setItem(
-          'user_role',
-          (user.role || 'counselor').toLowerCase(),
+            'user_role',
+            (user.role || 'counselor').toLowerCase(),
         )
         localStorage.setItem('user_name', user.name || user.username || '')
         localStorage.setItem('admin_role', user.role || 'counselor')
@@ -129,25 +130,9 @@ const login = async () => {
       loadCaptcha()
     }
 
-    res = await adminLogin({
-      username: form.value.username,
-      password: form.value.password,
-      role: 'counselor'
-    })
-    const user = res.data
-    if (!user) {
-      alert('账号或密码错误')
-      return
-    }
-    localStorage.setItem('userId', user.id)
-    localStorage.setItem('user_id', user.id)
-    localStorage.setItem('user_token', user.username)
-    localStorage.setItem('user_role', user.role)
-    localStorage.setItem('user_name', user.name)
-    localStorage.setItem('admin_token', user.role + Date.now())
-    localStorage.setItem('admin_role', user.role)
-    alert('登录成功')
-    router.push('/admin')
+    // 真实 API 调用失败后的错误提示
+    alert('登录失败，请检查账号密码或联系管理员')
+    loadCaptcha()
   } catch (err) {
     alert(err.message || '登录失败')
   }
@@ -249,32 +234,20 @@ button:hover {
   background: #2c5282;
 }
 
-.dev-tip {
+.quick-login-tips {
   margin-top: 16px;
   padding-top: 12px;
   border-top: 1px dashed #e0e0e0;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.dev-label {
+.tip-label {
   font-size: 12px;
   color: #999;
-  margin-right: 8px;
-}
-
-.dev-btn {
-  width: auto !important;
-  padding: 6px 12px !important;
-  margin-top: 0 !important;
-  font-size: 12px !important;
-  background: #6b7280 !important;
-  color: white !important;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.dev-btn:hover {
-  background: #4b5563 !important;
 }
 </style>

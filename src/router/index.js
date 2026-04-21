@@ -149,18 +149,18 @@ const routes = [
   },
 
 // 请假管理（个人申请仅咨询师；管理员/心理中心在 /admin/leave 审批）
-{
-  path: '/leave/apply',
-  name: 'LeaveApply',
-  component: () => import('../views/leave/LeaveApply.vue'),
-  meta: { needAuth: true, roles: ['counselor'] }
-},
-{
-  path: '/leave/list',
-  name: 'LeaveList',
-  redirect: '/admin/leave-list',
-  meta: { needAuth: true, roles: ['counselor'] }
-},
+  {
+    path: '/leave/apply',
+    name: 'LeaveApply',
+    component: () => import('../views/leave/LeaveApply.vue'),
+    meta: { needAuth: true, roles: ['counselor'] }
+  },
+  {
+    path: '/leave/list',
+    name: 'LeaveList',
+    redirect: '/admin/leave-list',
+    meta: { needAuth: true, roles: ['counselor', 'center', 'admin'] }
+  },
 
 // 测评查看
 {
@@ -339,7 +339,6 @@ const routes = [
     { path: 'activity', name: 'ActivityView', component: () => import('../views/parent/activity/ActivityView.vue') },
     { path: 'profile', name: 'ProfileView', component: () => import('../views/parent/profile/ProfileView.vue') },
     { path: 'contact', name: 'ContactCounselor', component: () => import('../views/parent/contact/ContactCounselor.vue') },
-    { path: 'message', name: 'ParentMessage', component: () => import('../views/parent/message/ParentMessage.vue') },
   ]
 },
 
@@ -470,7 +469,7 @@ const routes = [
       path: 'leave-list',
       name: 'AdminLeaveList',
       component: () => import('../views/leave/LeaveList.vue'),
-      meta: { needAuth: true, roles: ['counselor'] }
+      meta: { needAuth: true, roles: ['counselor', 'center', 'admin'] }
     },
     {
       path: 'assessment-detail/:planId',
@@ -496,9 +495,11 @@ const routes = [
 
     {
       path: 'peer-forum',
+      name: 'AdminPeerForum',
       component: () => import('../views/admin/AdminPeerForum.vue'),
-      meta: { needAuth: true, roles: ['admin', 'center', 'counselor', 'tutor', 'instructor'] }
+      meta: { needAuth: true, roles: ['admin', 'center', 'counselor', 'tutor', 'instructor', 'college', 'college_leader', 'leader', 'school_leader'] }
     },
+
 
     // 心理中心端专属
     {
@@ -601,14 +602,9 @@ const routes = [
       meta: { needAuth: true, roles: ['tutor', 'instructor'] }
     },
     {
-      path: 'tutor-parent-message',
-      component: () => import('../views/tutor/TutorParentMessage.vue'),
-      meta: { needAuth: true, roles: ['tutor', 'instructor'] }
-    },
-    {
       path: 'tutor-message-center',
       component: () => import('../views/message/MessageCenter.vue'),
-      meta: { needAuth: true, roles: ['tutor', 'instructor', 'counselor', 'center', 'admin', 'college', 'leader'] }
+      meta: { needAuth: true, roles: ['tutor', 'instructor', 'counselor', 'center', 'admin', 'college', 'college_leader', 'leader', 'school_leader'] }
     },
     {
       path: 'tutor-activity-manage',
@@ -732,6 +728,84 @@ const routes = [
       meta: { needAuth: true, roles: ['leader', 'school_leader'] }
     },
     {
+      path: 'leader-peer-support',
+      name: 'LeaderPeerSupport',
+      component: () => import('../views/leader/LeaderPeerForumView.vue'),
+      meta: { needAuth: true, roles: ['leader', 'school_leader'] }
+    },
+    {
+      path: 'leader-peer-support/:id',
+      name: 'LeaderPeerSupportDetail',
+      component: () => import('../views/peer/PeerSupportDetail.vue'),
+      meta: { needAuth: true, roles: ['leader', 'school_leader'] }
+    },
+    {
+      path: 'leader-peer-forum-audit',
+      name: 'LeaderPeerForumAudit',
+      component: () => import('../views/admin/AdminPeerForum.vue'),
+      meta: { needAuth: true, roles: ['leader', 'school_leader'] }
+    },
+    {
+      path: 'college-peer-support',
+      name: 'CollegePeerSupport',
+      component: () => import('../views/leader/LeaderPeerForumView.vue'),
+      meta: { needAuth: true, roles: ['college', 'college_leader'] }
+    },
+    {
+      path: 'college-peer-support/:id',
+      name: 'CollegePeerSupportDetail',
+      component: () => import('../views/peer/PeerSupportDetail.vue'),
+      meta: { needAuth: true, roles: ['college', 'college_leader'] }
+    },
+    {
+      path: 'college-peer-forum-audit',
+      name: 'CollegePeerForumAudit',
+      component: () => import('../views/admin/AdminPeerForum.vue'),
+      meta: { needAuth: true, roles: ['college', 'college_leader'] }
+    },
+    {
+      path: 'peer-forum-view',
+      name: 'PeerForumView',
+      component: () => import('../views/leader/LeaderPeerForumView.vue'),
+      meta: { needAuth: true, roles: ['admin', 'center', 'counselor', 'tutor', 'instructor'] }
+    },
+    {
+      path: 'peer-forum-view/:id',
+      name: 'PeerForumViewDetail',
+      component: () => import('../views/peer/PeerSupportDetail.vue'),
+      meta: { needAuth: true, roles: ['admin', 'center', 'counselor', 'tutor', 'instructor'] }
+    },
+    {
+      path: 'peer-forum-pending',
+      name: 'PeerForumPending',
+      component: () => import('../views/admin/AdminPeerForum.vue'),
+      meta: { needAuth: true, roles: ['admin', 'center', 'counselor', 'tutor', 'instructor'] }
+    },
+    {
+      path: 'peer-forum-pending/:id',
+      name: 'PeerForumPendingDetail',
+      component: () => import('../views/peer/PeerSupportDetail.vue'),
+      meta: { needAuth: true, roles: ['admin', 'center', 'counselor', 'tutor', 'instructor'] }
+    },
+    {
+      path: 'peer-forum/posts',
+      name: 'AdminPeerForumPosts',
+      component: () => import('../views/admin/AdminPeerForum.vue'),
+      meta: { needAuth: true, roles: ['admin', 'center', 'counselor', 'tutor', 'instructor'] }
+    },
+    {
+      path: 'peer-forum/pending',
+      name: 'AdminPeerForumPending',
+      component: () => import('../views/admin/AdminPeerForum.vue'),
+      meta: { needAuth: true, roles: ['admin', 'center', 'counselor', 'tutor', 'instructor'] }
+    },
+    {
+      path: 'peer-forum/reports',
+      name: 'AdminPeerForumReports',
+      component: () => import('../views/admin/AdminPeerForum.vue'),
+      meta: { needAuth: true, roles: ['admin', 'center', 'counselor', 'tutor', 'instructor'] }
+    },
+    {
       path: 'todo-list',
       name: 'TodoList',
       component: () => import('../views/admin/TodoList.vue'),
@@ -775,6 +849,14 @@ if (to.path.startsWith('/admin')) {
     role = localStorage.getItem('user_role')
   }
 
+  console.log('🔐 路由守卫检查:', {
+    path: to.path,
+    role: role,
+    admin_role: localStorage.getItem('admin_role'),
+    user_role: localStorage.getItem('user_role'),
+    hasToken: !!token
+  })
+
   // 允许的角色列表，包含 instructor 和 tutor（都是辅导员）
   // 包含 college_leader 和 school_leader 的兼容
   const allowRoles = ['admin', 'counselor', 'center', 'tutor', 'instructor', 'college', 'college_leader', 'leader', 'school_leader']
@@ -782,6 +864,7 @@ if (to.path.startsWith('/admin')) {
 
   // 第一层：判断是否后台用户
   if (needAuth && (!token || !allowRoles.includes(role))) {
+    console.warn('⚠️ 权限不足，重定向到登录页', { role, token: !!token, allowRoles })
     return next('/login/admin')
   }
 
@@ -802,11 +885,25 @@ if (to.path.startsWith('/admin')) {
 
   // 第二层：是否有该页面权限
   const routeRoles = to.meta?.roles
+
   if (routeRoles && !routeRoles.includes(role)) {
-    return next('/login/admin')
+    const roleLower = role.toLowerCase()
+    const hasPermission = routeRoles.some(r => r.toLowerCase() === roleLower)
+
+    if (!hasPermission) {
+      console.warn('⚠️ 页面权限不足', {
+        role,
+        roleLower,
+        routeRoles,
+        path: to.path
+      })
+      return next('/login/admin')
+    }
+    console.log('✅ 通过大小写不敏感匹配获得权限')
   }
   return next()
 }
+
 
 
   // 2. 学生/家长端（凡是需要登录的非 admin 页面）

@@ -20,10 +20,22 @@
           <el-empty v-if="!pendingList.length" description="暂无待审批的请假申请" />
           <el-table v-else :data="pendingList" stripe>
             <el-table-column prop="counselorName" label="咨询师" width="100" />
-            <el-table-column prop="leaveDate" label="请假日期" width="120" />
-            <el-table-column prop="leaveTime" label="时间段" width="120" />
+            <el-table-column label="请假日期" width="120">
+              <template #default="{ row }">
+                {{ formatDate(row.startTime) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="时间段" width="180">
+              <template #default="{ row }">
+                {{ formatTime(row.startTime) }} - {{ formatTime(row.endTime) }}
+              </template>
+            </el-table-column>
             <el-table-column prop="reason" label="请假原因" min-width="200" show-overflow-tooltip />
-            <el-table-column prop="applyTime" label="申请时间" width="160" />
+            <el-table-column label="申请时间" width="160">
+              <template #default="{ row }">
+                {{ formatDateTime(row.createdAt) }}
+              </template>
+            </el-table-column>
             <el-table-column label="操作" width="180" fixed="right">
               <template #default="{ row }">
                 <el-button type="success" link size="small" @click="approve(row)">通过</el-button>
@@ -49,18 +61,30 @@
           </el-form>
           <el-table :data="processedList" stripe>
             <el-table-column prop="counselorName" label="咨询师" width="100" />
-            <el-table-column prop="leaveDate" label="请假日期" width="120" />
-            <el-table-column prop="leaveTime" label="时间段" width="120" />
+            <el-table-column label="请假日期" width="120">
+              <template #default="{ row }">
+                {{ formatDate(row.startTime) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="时间段" width="180">
+              <template #default="{ row }">
+                {{ formatTime(row.startTime) }} - {{ formatTime(row.endTime) }}
+              </template>
+            </el-table-column>
             <el-table-column prop="reason" label="请假原因" min-width="180" show-overflow-tooltip />
             <el-table-column prop="status" label="审批结果" width="100">
               <template #default="{ row }">
-                <el-tag :type="row.status === 'approved' ? 'success' : 'info'" size="small">
-                  {{ row.status === 'approved' ? '已通过' : '已拒绝' }}
+                <el-tag :type="row.status === 'APPROVED' ? 'success' : 'danger'" size="small">
+                  {{ row.status === 'APPROVED' ? '已通过' : '已拒绝' }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="approveTime" label="审批时间" width="160" />
-            <el-table-column prop="approver" label="审批人" width="100" />
+            <el-table-column label="审批时间" width="160">
+              <template #default="{ row }">
+                {{ formatDateTime(row.updatedAt) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="approverName" label="审批人" width="100" />
           </el-table>
         </el-card>
       </el-tab-pane>
@@ -79,7 +103,31 @@
 <script setup>import { ref, onMounted, watch } from 'vue'
 import { Refresh } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getLeaveApprovalList, approveLeave, rejectLeave } from '../../api/leaveApi'
+import {
+  getLeaveApprovalList,
+  getProcessedLeaveList,
+  approveLeave,
+  rejectLeave
+} from '../../api/leaveApi'
+
+// 日期格式化工具
+function formatDate(dateStr) {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+function formatTime(dateStr) {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
+function formatDateTime(dateStr) {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+}
 
 const activeTab = ref('pending')
 const filterStatus = ref('')
@@ -94,6 +142,15 @@ async function loadData() {
     const res = await getLeaveApprovalList({ status: 'pending' })
     if (res?.code === 200 && Array.isArray(res.data)) {
       pendingList.value = res.data
+      // 调试：查看第一条数据的结构
+      if (res.data.length > 0) {
+        console.log('📋 请假数据结构示例:', res.data[0])
+        console.log('🔑 可用的ID字段:', {
+          id: res.data[0].id,
+          leaveId: res.data[0].leaveId,
+          leave_id: res.data[0].leave_id
+        })
+      }
     } else {
       pendingList.value = []
       ElMessage.warning('获取待审批列表失败')
@@ -113,7 +170,10 @@ async function loadProcessed() {
     }
     const res = await getLeaveApprovalList(params)
     if (res?.code === 200 && Array.isArray(res.data)) {
-      processedList.value = res.data
+      // 已处理标签页只显示 APPROVED 和 REJECTED 状态
+      // 当筛选"全部"时，后端返回所有状态，需要前端过滤
+      const processedStatuses = ['APPROVED', 'REJECTED']
+      processedList.value = res.data.filter(item => processedStatuses.includes(item.status))
     } else {
       processedList.value = []
       ElMessage.warning('获取已处理列表失败')
@@ -132,12 +192,22 @@ watch(activeTab, (val) => {
 })
 
 function approve(row) {
+  // 兼容不同的ID字段名
+  const leaveId = row.id || row.leaveId || row.leave_id
+
+  if (!leaveId) {
+    console.error('❌ 错误：无法获取请假ID', row)
+    ElMessage.error('数据异常：缺少请假ID')
+    return
+  }
+
   ElMessageBox.confirm('通过后将自动关闭该时段排班，学生无法预约。确定通过？', '确认通过', {
     type: 'info',
   })
       .then(async () => {
         try {
-          const res = await approveLeave({ id: row.id })
+          console.log('✅ 审批请假ID:', leaveId)
+          const res = await approveLeave(leaveId, {})
           if (res?.code === 200) {
             ElMessage.success('已通过')
             await loadData()
@@ -165,8 +235,18 @@ async function confirmReject() {
     return
   }
 
+  // 兼容不同的ID字段名
+  const leaveId = row.id || row.leaveId || row.leave_id
+
+  if (!leaveId) {
+    console.error('❌ 错误：无法获取请假ID', row)
+    ElMessage.error('数据异常：缺少请假ID')
+    return
+  }
+
   try {
-    const res = await rejectLeave({ id: row.id, reason: rejectReason.value })
+    console.log('✅ 拒绝请假ID:', leaveId)
+    const res = await rejectLeave(leaveId, { reason: rejectReason.value })
     if (res?.code === 200) {
       ElMessage.success('已拒绝')
       rejectVisible.value = false

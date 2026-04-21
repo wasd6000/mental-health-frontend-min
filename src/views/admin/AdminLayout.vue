@@ -116,9 +116,9 @@ const loadUnreadCount = async () => {
 const loadUserPermissionsAndMenus = async () => {
   menuLoading.value = true
   try {
-    console.log('开始加载用户权限...')
+    console.log('🔐 开始加载用户权限...')
     const res = await getMyPermissions()
-    console.log('权限接口响应:', res)
+    console.log('📥 权限接口响应:', res)
 
     if (res.code === 200 && res.data) {
       // 保存用户权限和角色
@@ -127,31 +127,31 @@ const loadUserPermissionsAndMenus = async () => {
 
       // 转换后端返回的菜单数据
       const backendMenus = res.data.menus || []
-      console.log('后端菜单数据:', backendMenus)
+      console.log('📋 后端原始菜单数据:', JSON.stringify(backendMenus, null, 2))
 
       const transformedMenus = transformBackendMenus(backendMenus)
-      console.log('转换后的菜单:', transformedMenus)
+      console.log('✨ 转换后的菜单树:', JSON.stringify(transformedMenus, null, 2))
 
       // 扁平化菜单树为单层列表（用于侧边栏）
       sidebarMenus.value = flattenMenuTree(transformedMenus)
-      console.log('侧边栏菜单:', sidebarMenus.value)
+      console.log('📑 最终侧边栏菜单:', sidebarMenus.value.map(m => ({ label: m.label, path: m.path })))
 
       if (sidebarMenus.value.length === 0) {
         ElMessage.warning('当前用户暂无可用菜单，请联系管理员配置权限')
       }
     } else {
-      console.error('获取用户权限失败:', res.message || res.msg)
+      console.error('❌ 获取用户权限失败:', res.message || res.msg)
       ElMessage.error(res.message || res.msg || '获取用户权限失败')
       sidebarMenus.value = []
     }
   } catch (e) {
-    console.error('加载用户权限失败:', e)
+    console.error('❌ 加载用户权限失败:', e)
     const errorMsg = e.response?.data?.message || e.message || '加载菜单失败'
     ElMessage.error(errorMsg)
     sidebarMenus.value = []
   } finally {
     menuLoading.value = false
-    console.log('菜单加载完成，当前菜单数量:', sidebarMenus.value.length)
+    console.log('✅ 菜单加载完成，当前菜单数量:', sidebarMenus.value.length)
   }
 }
 
@@ -222,9 +222,21 @@ const currentPath = computed(() => {
 // 路由跳转
 function go(page) {
   const path = `/admin/${String(page).replace(/^\//, '')}`
+
+  // 检查路由是否存在
+  const resolvedRoute = router.resolve(path)
+  if (resolvedRoute.name === null || resolvedRoute.matched.length === 0) {
+    console.warn(`路由不存在: ${path}`)
+    ElMessage.warning('该功能暂未开放或无权限访问')
+    return
+  }
+
   router.push(path).catch(err => {
     console.error('路由跳转失败:', err)
-    ElMessage.error('页面不存在或无权限访问')
+    // 只在真正的错误时才显示错误消息
+    if (!err.message?.includes('Avoided redundant navigation')) {
+      ElMessage.error('页面不存在或无权限访问')
+    }
   })
 }
 
@@ -233,7 +245,28 @@ function goHome() {
 }
 
 function goToMessageCenter() {
-  const targetPath = '/admin/tutor-message-center'
+  // 根据用户角色动态跳转到对应的消息中心
+  const role = localStorage.getItem('admin_role') || localStorage.getItem('user_role') || ''
+
+  let targetPath = '/admin/tutor-message-center' // 默认辅导员消息中心
+
+  // 根据角色选择对应的消息中心路径（支持大小写）
+  const roleLower = role.toLowerCase()
+
+  if (roleLower === 'college' || roleLower === 'college_leader') {
+    targetPath = '/admin/college-message-center'
+  } else if (roleLower === 'leader' || roleLower === 'school_leader') {
+    targetPath = '/admin/leader-message-center'
+  } else if (roleLower === 'counselor') {
+    targetPath = '/admin/tutor-message-center'
+  } else if (roleLower === 'center') {
+    targetPath = '/admin/tutor-message-center'
+  } else if (roleLower === 'admin') {
+    targetPath = '/admin/tutor-message-center'
+  } else if (roleLower === 'tutor' || roleLower === 'instructor') {
+    targetPath = '/admin/tutor-message-center'
+  }
+
 
   if (route.path === targetPath) {
     window.location.reload()
@@ -241,10 +274,11 @@ function goToMessageCenter() {
   }
 
   router.push(targetPath).catch(err => {
-    console.error('路由跳转失败:', err)
     ElMessage.error('跳转失败，请重试')
   })
 }
+
+
 </script>
 
 

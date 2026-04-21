@@ -36,9 +36,11 @@
       <el-table :data="paginatedList" stripe v-loading="loading">
         <el-table-column prop="account" label="账号" width="120" />
         <el-table-column prop="name" label="姓名" width="100" />
-        <el-table-column prop="role" label="角色" width="100">
+        <el-table-column prop="role" label="角色" width="120">
           <template #default="{ row }">
-            <el-tag size="small">{{ roleMap[row.role] || row.role }}</el-tag>
+            <el-tag size="small" :type="getRoleTagType(row.roleCode)">
+              {{ row.role || '未知' }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="phone" label="手机号" width="120" />
@@ -65,11 +67,13 @@
       </el-table>
       <div class="pagination-wrap">
         <el-pagination
-          v-model:current-page="page"
-          v-model:page-size="pageSize"
-          :total="filteredList.length"
-          :page-sizes="[10, 20, 50]"
-          layout="total, sizes, prev, pager, next"
+            v-model:current-page="page"
+            v-model:page-size="pageSize"
+            :total="total"
+            :page-sizes="[10, 20, 50]"
+            layout="total, sizes, prev, pager, next"
+            @current-change="loadData"
+            @size-change="loadData"
         />
       </div>
     </el-card>
@@ -106,6 +110,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { Refresh } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { getUserList, resetUserPassword, toggleUserStatus } from '../../api/openapi'
 
 const roleOptions = [
   { value: 'student', label: '学生' },
@@ -116,7 +121,49 @@ const roleOptions = [
   { value: 'admin', label: '管理员' },
 ]
 
+// 角色代码到中文的映射（支持大写和小写）
+const roleCodeToLabel = {
+  'student': '学生',
+  'STUDENT': '学生',
+  'parent': '家长',
+  'PARENT': '家长',
+  'counselor': '咨询师',
+  'COUNSELOR': '咨询师',
+  'tutor': '辅导员',
+  'INSTRUCTOR': '辅导员',
+  'tutor': '辅导员',
+  'center': '心理中心',
+  'CENTER': '心理中心',
+  'admin': '管理员',
+  'ADMIN': '管理员',
+  'leader': '校领导',
+  'SCHOOL_LEADER': '校领导',
+  'college_leader': '院系领导',
+  'COLLEGE_LEADER': '院系领导',
+}
+
 const roleMap = Object.fromEntries(roleOptions.map((r) => [r.value, r.label]))
+
+// 角色标签颜色
+function getRoleTagType(roleCode) {
+  const typeMap = {
+    'STUDENT': '',
+    'student': '',
+    'PARENT': 'success',
+    'parent': 'success',
+    'COUNSELOR': 'warning',
+    'counselor': 'warning',
+    'INSTRUCTOR': 'warning',
+    'tutor': 'warning',
+    'CENTER': 'primary',
+    'center': 'primary',
+    'ADMIN': 'danger',
+    'admin': 'danger',
+    'SCHOOL_LEADER': 'info',
+    'COLLEGE_LEADER': 'info',
+  }
+  return typeMap[roleCode] || 'info'
+}
 
 const filter = reactive({
   role: '',
@@ -127,6 +174,7 @@ const page = ref(1)
 const pageSize = ref(10)
 const loading = ref(false)
 const userList = ref([])
+const total = ref(0)
 const userDialogVisible = ref(false)
 const editingUser = ref(null)
 const userForm = reactive({
@@ -138,40 +186,61 @@ const userForm = reactive({
 })
 
 const filteredList = computed(() => {
-  let list = userList.value
-  if (filter.role) list = list.filter((u) => u.role === filter.role)
-  if (filter.status) list = list.filter((u) => u.status === filter.status)
-  if (filter.keyword) {
-    const k = filter.keyword.toLowerCase()
-    list = list.filter(
-      (u) =>
-        (u.account && u.account.toLowerCase().includes(k)) ||
-        (u.name && u.name.toLowerCase().includes(k))
-    )
-  }
-  return list
+  return userList.value
 })
 
 const paginatedList = computed(() => {
-  const list = filteredList.value
-  const start = (page.value - 1) * pageSize.value
-  return list.slice(start, start + pageSize.value)
+  return userList.value
 })
 
-function loadData() {
+async function loadData() {
   loading.value = true
-  setTimeout(() => {
-    userList.value = [
-      { id: '1', account: 'student001', name: '张三', role: 'student', phone: '13800138001', status: 'enabled', lastLogin: '2025-03-04 09:20', createTime: '2024-09-01 10:00' },
-      { id: '2', account: 'parent_li', name: '李四', role: 'parent', phone: '13800138002', status: 'enabled', lastLogin: '2025-03-03 14:30', createTime: '2024-09-05 11:00' },
-      { id: '3', account: 'counselor_wang', name: '王老师', role: 'counselor', phone: '13800138003', status: 'enabled', lastLogin: '2025-03-04 08:15', createTime: '2024-08-01 09:00' },
-      { id: '4', account: 'tutor_zhang', name: '张辅导员', role: 'tutor', phone: '13800138004', status: 'enabled', lastLogin: '2025-03-03 16:00', createTime: '2024-08-15 10:00' },
-      { id: '5', account: 'center_01', name: '心理中心管理员', role: 'center', phone: '13800138005', status: 'enabled', lastLogin: '2025-03-04 10:00', createTime: '2024-07-01 09:00' },
-      { id: '6', account: 'admin', name: '系统管理员', role: 'admin', phone: '', status: 'enabled', lastLogin: '2025-03-04 10:32', createTime: '2024-06-01 08:00' },
-      { id: '7', account: 'student002', name: '赵六', role: 'student', phone: '13800138006', status: 'disabled', lastLogin: '2025-02-20 12:00', createTime: '2024-09-10 14:00' },
-    ]
+  try {
+    const params = {
+      pageNum: page.value,
+      pageSize: pageSize.value,
+    }
+    if (filter.role) params.role = filter.role
+    if (filter.status) params.status = filter.status
+    if (filter.keyword) params.keyword = filter.keyword
+
+    const res = await getUserList(params)
+    console.log('📊 后端返回的完整响应:', res)
+
+    if (res?.code === 200 && res.data) {
+      const rawData = res.data.records || res.data.list || (Array.isArray(res.data) ? res.data : [])
+      console.log('📋 原始用户数据（第一条）:', rawData[0])
+
+      userList.value = rawData.map(item => {
+        const roleCode = item.role_code || item.roleCode || item.role || ''
+        const roleLabel = roleCodeToLabel[roleCode] || roleCode || '未知角色'
+
+        return {
+          id: item.userId || item.id || item.user_id,
+          account: item.username || item.account || item.loginName || '',
+          name: item.realName || item.real_name || item.name || item.nickname || '',
+          role: roleLabel,
+          roleCode: roleCode,
+          phone: item.mobile || item.phone || item.phoneNumber || item.tel || '',
+          status: (item.status === 1 || item.status === '1' || item.status === 'enabled' || item.enabled === true || item.status === true) ? 'enabled' : 'disabled',
+          lastLogin: item.lastLoginTime || item.last_login_time || item.lastLogin || item.loginTime || '-',
+          createTime: item.createTime || item.create_time || item.createdAt || item.created_at || '-',
+        }
+      })
+
+      total.value = res.data.total ?? rawData.length
+      console.log('✅ 映射后的数据（第一条）:', userList.value[0])
+    } else {
+      ElMessage.warning(res?.msg || '获取用户列表失败')
+      userList.value = []
+    }
+  } catch (e) {
+    console.error('❌ 加载用户列表失败:', e)
+    ElMessage.error(e?.message || '网络请求失败')
+    userList.value = []
+  } finally {
     loading.value = false
-  }, 300)
+  }
 }
 
 function resetFilter() {
@@ -179,6 +248,7 @@ function resetFilter() {
   filter.status = ''
   filter.keyword = ''
   page.value = 1
+  loadData()
 }
 
 function openUserDialog(row = null) {
@@ -199,7 +269,7 @@ function openUserDialog(row = null) {
   userDialogVisible.value = true
 }
 
-function saveUser() {
+async function saveUser() {
   if (!userForm.account || !userForm.name || !userForm.role) {
     ElMessage.warning('请填写账号、姓名并选择角色')
     return
@@ -208,53 +278,82 @@ function saveUser() {
     ElMessage.warning('请输入初始密码')
     return
   }
-  if (editingUser.value) {
-    const u = userList.value.find((x) => x.id === editingUser.value.id)
-    if (u) {
-      u.name = userForm.name
-      u.role = userForm.role
-      u.phone = userForm.phone
-    }
-  } else {
-    userList.value.push({
-      id: String(Date.now()),
-      account: userForm.account,
-      name: userForm.name,
-      role: userForm.role,
-      phone: userForm.phone,
-      status: 'enabled',
-      lastLogin: '-',
-      createTime: new Date().toLocaleString('zh-CN'),
-    })
+
+  try {
+    loading.value = true
+    // TODO: 需要后端提供新增/编辑用户的 API
+    // 目前先提示功能待实现
+    ElMessage.info('新增/编辑用户功能待后端接口支持')
+    userDialogVisible.value = false
+  } catch (e) {
+    console.error('保存用户失败:', e)
+    ElMessage.error(e?.message || '保存失败')
+  } finally {
+    loading.value = false
   }
-  userDialogVisible.value = false
-  ElMessage.success('保存成功')
 }
 
-function toggleStatus(row) {
-  row.status = row.status === 'enabled' ? 'disabled' : 'enabled'
-  ElMessage.success(row.status === 'enabled' ? '已启用' : '已停用')
+async function toggleStatus(row) {
+  try {
+    const newStatus = row.status === 'enabled' ? 'disabled' : 'enabled'
+    const res = await toggleUserStatus({}, {
+      userId: row.id,
+      status: newStatus,
+    })
+
+    if (res?.code === 200) {
+      row.status = newStatus
+      ElMessage.success(newStatus === 'enabled' ? '已启用' : '已停用')
+    } else {
+      ElMessage.error(res?.msg || '操作失败')
+    }
+  } catch (e) {
+    console.error('切换状态失败:', e)
+    ElMessage.error(e?.message || '网络请求失败')
+  }
 }
 
-function resetPwd(row) {
-  ElMessageBox.confirm('确定重置该用户密码为默认密码？', '重置密码', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning',
-  }).then(() => {
-    ElMessage.success('密码已重置')
-  }).catch(() => {})
+async function resetPwd(row) {
+  try {
+    await ElMessageBox.confirm('确定重置该用户密码为默认密码？', '重置密码', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+
+    const res = await resetUserPassword({}, {
+      userId: row.id,
+    })
+
+    if (res?.code === 200) {
+      ElMessage.success('密码已重置为默认密码')
+    } else {
+      ElMessage.error(res?.msg || '重置失败')
+    }
+  } catch (e) {
+    if (e !== 'cancel') {
+      console.error('重置密码失败:', e)
+      ElMessage.error(e?.message || '网络请求失败')
+    }
+  }
 }
 
-function removeUser(row) {
-  ElMessageBox.confirm('确定删除该用户？删除后不可恢复。', '删除用户', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning',
-  }).then(() => {
-    userList.value = userList.value.filter((u) => u.id !== row.id)
-    ElMessage.success('已删除')
-  }).catch(() => {})
+async function removeUser(row) {
+  try {
+    await ElMessageBox.confirm('确定删除该用户？删除后不可恢复。', '删除用户', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+
+    // TODO: 需要后端提供删除用户的 API
+    ElMessage.info('删除用户功能待后端接口支持')
+  } catch (e) {
+    if (e !== 'cancel') {
+      console.error('删除用户失败:', e)
+      ElMessage.error(e?.message || '网络请求失败')
+    }
+  }
 }
 
 onMounted(() => {

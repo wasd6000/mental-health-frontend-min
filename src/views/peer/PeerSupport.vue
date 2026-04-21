@@ -220,7 +220,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { listPosts, createPost } from '@/api/peerForumApi.js'
@@ -232,7 +232,9 @@ import {
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
+const route = useRoute()
 const keyword = ref('')
+
 const type = ref('')
 const sort = ref<ForumSort>('latest')
 const list = ref<ForumPost[]>([])
@@ -327,7 +329,16 @@ function onSearch() {
 }
 
 function goDetail(id) {
-  router.push(`/student/peer-support/${id}`)
+  // 根据当前路由动态生成详情页路径
+  const currentPath = route.path
+  let basePath = '/student/peer-support'
+
+  // 如果当前在领导端的同辈互助页面，跳转到领导端详情页
+  if (currentPath.includes('/admin/leader-peer-support')) {
+    basePath = '/admin/leader-peer-support'
+  }
+
+  router.push(`${basePath}/${id}`)
 }
 
 onMounted(() => {
@@ -376,7 +387,14 @@ async function submitCreate() {
     createForm.value.isAnonymous = true
     page.value = 1
     await loadList()
-    router.push(`/student/peer-support/${post.id}`)
+
+    // 根据当前路由动态生成详情页路径
+    const currentPath = route.path
+    let basePath = '/student/peer-support'
+    if (currentPath.includes('/admin/leader-peer-support')) {
+      basePath = '/admin/leader-peer-support'
+    }
+    router.push(`${basePath}/${post.id}`)
   } catch (e: any) {
     ElMessage.error(e?.message || '发布失败')
   } finally {

@@ -1,13 +1,6 @@
 <template>
   <div class="counselor-appointments">
     <h2>预约管理</h2>
-    <p class="page-hint">
-      数据来自 <code>GET /api/appointment/list</code>，查询参数仅使用后端
-      <code>PageQueryDTO</code>：<code>page</code>、<code>pageSize</code>、<code>counselorId</code>（与 JWT
-      <code>userId</code>、表 <code>counselor_schedule.counselor_id</code> 一致）；不传
-      <code>userId</code>，以免按学生条件过滤后结果为空。
-    </p>
-
     <!-- 今日预约时间轴 -->
     <section class="card today-section">
       <h3>今日预约</h3>
@@ -250,20 +243,6 @@ onMounted(() => {
 
 .counselor-appointments h2 {
   margin: 0 0 8px 0;
-}
-
-.page-hint {
-  margin: 0 0 16px;
-  font-size: 13px;
-  color: #64748b;
-  line-height: 1.5;
-}
-
-.page-hint code {
-  font-size: 12px;
-  background: #f1f5f9;
-  padding: 2px 6px;
-  border-radius: 4px;
 }
 
 .card {

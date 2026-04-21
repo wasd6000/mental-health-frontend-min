@@ -87,27 +87,114 @@ export function cancelLeave(leaveId, data) {
  * PUT /api/counselor/leave/{leaveId}/approve
  */
 export function approveLeave(leaveId, data) {
-  return request.put(`/api/counselor/leave/${leaveId}/approve`, data, {
+  // 从多个可能的存储位置获取审批人ID
+  const approverId =
+      localStorage.getItem('userId') ||
+      localStorage.getItem('user_id') ||
+      localStorage.getItem('admin_user_id') ||
+      localStorage.getItem('counselorId') ||
+      localStorage.getItem('counselor_id') ||
+      ''
+
+  console.log('🔍 审批请求调试信息:', {
+    leaveId,
+    approverId,
+    userId: localStorage.getItem('userId'),
+    user_id: localStorage.getItem('user_id'),
+    admin_user_id: localStorage.getItem('admin_user_id'),
+    counselorId: localStorage.getItem('counselorId'),
+    counselor_id: localStorage.getItem('counselor_id'),
+    requestBody: {
+      approverId,
+      ...data
+    }
+  })
+
+  if (!approverId) {
+    console.error('❌ 错误：审批人ID为空，请重新登录')
+    throw new Error('审批人ID不能为空，请重新登录')
+  }
+
+  return request.put(`/api/counselor/leave/${leaveId}/approve`, {
+    status: 'APPROVED',
+    ...data
+  }, {
     headers: {
-      'X-User-Id': localStorage.getItem('userId')
+      'X-User-Id': approverId
     }
   })
 }
 
 /**
- * 查询审批列表
+ * 拒绝请假
+ * PUT /api/counselor/leave/{leaveId}/reject
+ */
+export function rejectLeave(leaveId, data) {
+  // 从多个可能的存储位置获取审批人ID
+  const approverId =
+      localStorage.getItem('userId') ||
+      localStorage.getItem('user_id') ||
+      localStorage.getItem('admin_user_id') ||
+      localStorage.getItem('counselorId') ||
+      localStorage.getItem('counselor_id') ||
+      ''
+
+  console.log('🔍 拒绝请求调试信息:', {
+    leaveId,
+    approverId,
+    userId: localStorage.getItem('userId'),
+    user_id: localStorage.getItem('user_id'),
+    admin_user_id: localStorage.getItem('admin_user_id'),
+    counselorId: localStorage.getItem('counselorId'),
+    counselor_id: localStorage.getItem('counselor_id'),
+    requestBody: {
+      approverId,
+      ...data
+    }
+  })
+
+  if (!approverId) {
+    console.error('❌ 错误：审批人ID为空，请重新登录')
+    throw new Error('审批人ID不能为空，请重新登录')
+  }
+
+  return request.put(`/api/counselor/leave/${leaveId}/reject`, {
+    status: 'REJECTED',
+    ...data
+  }, {
+    headers: {
+      'X-User-Id': approverId
+    }
+  })
+}
+
+/**
+ * 拒绝请假（兼容旧接口）
+ * POST /api/leave/reject
+ * @deprecated 请使用 rejectLeave(leaveId, data)
+ */
+export function rejectLeaveLegacy(data) {
+  return request.post('/api/leave/reject', data)
+}
+
+/**
+ * 查询审批列表（待审批/已处理）
  * GET /api/counselor/leave/approval/list
+ * @param {Object} params - 查询参数
+ * @param {string} params.status - 状态筛选：pending/approved/rejected
  */
 export function getLeaveApprovalList(params = {}) {
   return request.get('/api/counselor/leave/approval/list', { params })
 }
 
 /**
- * 拒绝请假（兼容旧接口）
- * POST /api/leave/reject
+ * 查询已处理的请假列表
+ * GET /api/counselor/leave/processed
+ * @param {Object} params - 查询参数
+ * @param {string} params.status - 状态筛选：approved/rejected
  */
-export function rejectLeave(data) {
-  return request.post('/api/leave/reject', data)
+export function getProcessedLeaveList(params = {}) {
+  return request.get('/api/counselor/leave/processed', { params })
 }
 
 // ==================== 枚举值映射 ====================

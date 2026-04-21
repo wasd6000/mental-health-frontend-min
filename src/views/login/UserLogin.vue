@@ -312,7 +312,6 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import PortalNavBar from '@/components/portal/PortalNavBar.vue'
-import { adminLogin } from '../../api/mock'
 import { login as apiLogin, fetchVerificationCode, sendRegisterSms, registerAccount } from '@/api/auth'
 import { setAuthToken } from '@/api/request'
 import { ArrowLeft } from '@element-plus/icons-vue'
@@ -416,7 +415,7 @@ const submitForgotPassword = () => {
 
   alert('验证信息已提交，我们将通过邮件发送重置密码链接')
   showForgotPasswordModal.value = false
-  
+
   // 清空表单
   forgotPasswordForm.username = ''
   forgotPasswordForm.email = ''
@@ -437,13 +436,13 @@ const registerForm = reactive({
 })
 
 const isRegisterFormValid = computed(() => {
-  return registerForm.real_name && 
-         registerForm.gender !== '' && 
-         registerForm.username && 
-         registerForm.mobile && 
-         registerForm.email && 
+  return registerForm.real_name &&
+         registerForm.gender !== '' &&
+         registerForm.username &&
+         registerForm.mobile &&
+         registerForm.email &&
          registerForm.verify_code &&
-         registerForm.password && 
+         registerForm.password &&
          registerForm.confirm_password &&
          registerForm.password === registerForm.confirm_password
 })
@@ -593,45 +592,9 @@ const submitRegister = async () => {
     }
   } catch (_) {}
 
-  const registerData = {
-    role: 'student',
-    real_name: registerForm.real_name,
-    gender: parseInt(registerForm.gender),
-    username: registerForm.username,
-    mobile: registerForm.mobile,
-    email: registerForm.email,
-    password: registerForm.password
-  }
-
-  console.log('注册信息：', registerData)
-
-  // 将注册信息存储到localStorage
-  let users = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
-  users.push(registerData)
-  localStorage.setItem('registeredUsers', JSON.stringify(users))
-
-  alert('注册成功！请登录')
-  showRegisterModal.value = false
-  
-  // 清空表单
-  registerForm.real_name = ''
-  registerForm.gender = ''
-  registerForm.username = ''
-  registerForm.mobile = ''
-  registerForm.email = ''
-  registerForm.verify_code = ''
-  registerForm.password = ''
-  registerForm.confirm_password = ''
-  showRegisterPassword.value = false
+  alert('注册失败，请稍后重试或联系管理员')
 }
 
-// 测试账号
-const TEST_ACCOUNTS = {
-  student: {
-    username: 'student',
-    password: '123456',
-  }
-}
 
 const login = async () => {
   if (!form.username || !form.password) {
@@ -739,98 +702,6 @@ const login = async () => {
     loading.value = false
   }
 
-  // ========================
-  // 1 先走 mock 后端登录
-  // ========================
-  try {
-    const res = await adminLogin({
-      username: form.username,
-      password: form.password,
-      role
-
-    })
-
-
-    const user = res.data
-
-    clearStaffSessionKeys()
-    localStorage.setItem('studentId', user.account)
-    if (user.college_id) {
-      localStorage.setItem('student_college_id', user.college_id)
-    }
-
-    localStorage.setItem('User_token', user.role + '_' + Date.now())
-    localStorage.setItem('User_role', user.role)
-    localStorage.setItem('User_name', user.name || user.username)
-
-    const redirectPath =
-        router.currentRoute.value.query.redirect ||
-        (role === 'parent' ? '/parent/dashboard' : '/student/dashboard')
-
-    console.log('登录成功，跳转到:', redirectPath)
-    await router.push(redirectPath)
-    return
-
-  } catch (e) {
-    console.log('mock登录失败，尝试其他方式:', e)
-  }
-
-  // ========================
-  // 2 测试账号
-  // ========================
-  const testAccount = TEST_ACCOUNTS[role]
-  if (form.username === testAccount.username && form.password === testAccount.password) {
-
-    clearStaffSessionKeys()
-    localStorage.setItem('studentId', testAccount.username)
-    localStorage.setItem('User_token', role + '_' + Date.now())
-    localStorage.setItem('User_role', role)
-    localStorage.setItem('User_name', testAccount.username)
-
-    const redirectPath =
-        router.currentRoute.value.query.redirect ||
-        (role === 'parent' ? '/parent/dashboard' : '/student/dashboard')
-
-    console.log('测试账号登录成功，跳转到:', redirectPath)
-    await router.push(redirectPath)
-    return
-  }
-
-  // ========================
-  // 3 本地注册用户
-  // ========================
-  const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
-  const user = users.find(
-      u => u.username === form.username && u.role === role
-  )
-
-  if (!user) {
-    ElMessage.warning('账号未注册，请先注册')
-    return
-  }
-
-  if (user.password !== form.password) {
-    ElMessage.error('密码错误')
-    return
-  }
-
-  clearStaffSessionKeys()
-  localStorage.setItem('studentId', user.username)
-
-  if (user.college_id) {
-    localStorage.setItem('student_college_id', user.college_id)
-  }
-
-  localStorage.setItem('User_token', user.role + '_' + Date.now())
-  localStorage.setItem('User_role', user.role)
-  localStorage.setItem('User_name', user.real_name || user.username)
-
-  const redirectPath =
-      router.currentRoute.value.query.redirect ||
-      (role === 'parent' ? '/parent/dashboard' : '/student/dashboard')
-
-  console.log('本地用户登录成功，跳转到:', redirectPath)
-  await router.push(redirectPath)
 }
 </script>
 

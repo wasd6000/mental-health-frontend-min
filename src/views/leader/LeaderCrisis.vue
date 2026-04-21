@@ -299,8 +299,17 @@ const loadData = async () => {
     }
     const res = await getLeaderCrisisApprovalList(params)
     if (res.code === 200) {
-      crisisList.value = res.data?.list || res.data || []
-      totalCount.value = res.data?.total || crisisList.value.length
+      // 确保 crisisList 始终是数组
+      const data = res.data
+      if (Array.isArray(data)) {
+        crisisList.value = data
+      } else if (data && typeof data === 'object') {
+        crisisList.value = data.list || data.records || []
+        totalCount.value = data.total || crisisList.value.length
+      } else {
+        crisisList.value = []
+      }
+
       if (res.data?.stats) {
         crisisStats.value = res.data.stats
       }
@@ -317,6 +326,7 @@ const loadData = async () => {
   }
   loading.value = false
 }
+
 
 const handleSearch = () => {
   page.value = 1
