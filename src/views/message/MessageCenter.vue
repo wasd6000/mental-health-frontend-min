@@ -3,7 +3,14 @@
     <div class="page-header">
       <div class="header-left">
         <h1>消息中心</h1>
-        <el-badge v-if="totalUnread > 0" :value="totalUnread" class="total-badge" />
+        <el-badge
+          v-if="totalUnread > 0"
+          :value="totalUnread > 99 ? '99+' : totalUnread"
+          class="total-badge"
+          type="danger"
+        >
+          <div class="badge-pulse"></div>
+        </el-badge>
       </div>
       <div class="header-actions">
         <el-button :icon="Refresh" @click="loadList">刷新</el-button>
@@ -13,9 +20,20 @@
       </div>
     </div>
 
-    <el-tabs v-model="activeTab" @tab-change="handleTabChange">
+    <el-tabs v-model="activeTab" @tab-change="handleTabChange" class="message-tabs">
       <!-- 系统消息标签页（所有角色可见） -->
-      <el-tab-pane label="系统消息" name="system">
+      <el-tab-pane name="system">
+        <template #label>
+          <div class="tab-label">
+            <span>系统消息</span>
+            <el-badge
+              v-if="messageStore.systemMessageUnread > 0"
+              :value="messageStore.systemMessageUnread > 99 ? '99+' : messageStore.systemMessageUnread"
+              class="tab-badge"
+              type="primary"
+            />
+          </div>
+        </template>
         <el-card class="list-card" shadow="never" v-loading="loading">
           <div class="table-toolbar">
             <el-radio-group v-model="systemReadFilter" @change="loadSystemMessages" size="small">
@@ -56,9 +74,19 @@
       <!-- 家长/学生留言标签页（仅辅导员可见） -->
       <el-tab-pane
           v-if="['tutor', 'instructor'].includes(currentRole)"
-          label="家长/学生留言"
           name="teacher"
       >
+        <template #label>
+          <div class="tab-label">
+            <span>家长/学生留言</span>
+            <el-badge
+              v-if="messageStore.teacherMessageUnread > 0"
+              :value="messageStore.teacherMessageUnread > 99 ? '99+' : messageStore.teacherMessageUnread"
+              class="tab-badge"
+              type="warning"
+            />
+          </div>
+        </template>
         <el-card class="list-card" shadow="never" v-loading="loading">
           <el-table :data="teacherMessages" stripe style="width: 100%">
             <el-table-column prop="subject" label="主题" min-width="200" show-overflow-tooltip />
@@ -100,9 +128,19 @@
       <!-- 危机预警消息标签页（心理中心、院系领导、校领导、辅导员可见） -->
       <el-tab-pane
           v-if="['center', 'college', 'college_leader', 'leader', 'school_leader', 'tutor', 'instructor'].includes(currentRole)"
-          label="危机预警"
           name="crisis"
       >
+        <template #label>
+          <div class="tab-label">
+            <span>危机预警</span>
+            <el-badge
+              v-if="messageStore.crisisUnread > 0"
+              :value="messageStore.crisisUnread > 99 ? '99+' : messageStore.crisisUnread"
+              class="tab-badge crisis-badge"
+              type="danger"
+            />
+          </div>
+        </template>
         <el-card class="list-card crisis-card" shadow="never" v-loading="loading">
           <!-- 危机统计卡片 -->
           <div class="crisis-stats">
@@ -208,9 +246,19 @@
       <!-- 预约通知标签页（咨询师、心理中心可见） -->
       <el-tab-pane
           v-if="['counselor', 'center'].includes(currentRole)"
-          label="预约通知"
           name="appointment"
       >
+        <template #label>
+          <div class="tab-label">
+            <span>预约通知</span>
+            <el-badge
+              v-if="messageStore.appointmentUnread > 0"
+              :value="messageStore.appointmentUnread > 99 ? '99+' : messageStore.appointmentUnread"
+              class="tab-badge"
+              type="success"
+            />
+          </div>
+        </template>
         <el-card class="list-card" shadow="never" v-loading="loading">
           <el-table :data="appointmentMessages" stripe style="width: 100%">
             <el-table-column prop="studentName" label="学生姓名" width="120" />
@@ -243,7 +291,18 @@
       </el-tab-pane>
 
       <!-- 私信标签页（所有角色可见） -->
-      <el-tab-pane label="私信" name="private">
+      <el-tab-pane name="private">
+        <template #label>
+          <div class="tab-label">
+            <span>私信</span>
+            <el-badge
+              v-if="messageStore.privateMessageUnread > 0"
+              :value="messageStore.privateMessageUnread > 99 ? '99+' : messageStore.privateMessageUnread"
+              class="tab-badge"
+              type="info"
+            />
+          </div>
+        </template>
         <PrivateMessageList ref="privateMessageRef" @update-unread="handlePrivateUnreadUpdate" />
       </el-tab-pane>
     </el-tabs>
@@ -1066,6 +1125,80 @@ onMounted(() => {
   margin: 0;
   font-size: 22px;
   color: #1f2937;
+}
+
+.total-badge {
+  margin-left: 8px;
+}
+
+.total-badge :deep(.el-badge__content) {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 8px;
+  height: 22px;
+  line-height: 20px;
+  border-radius: 11px;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+  animation: pulse-badge 2s ease-in-out infinite;
+}
+
+@keyframes pulse-badge {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(239, 68, 68, 0.5);
+  }
+}
+
+/* Tab Labels and Badges */
+.message-tabs :deep(.el-tabs__item) {
+  padding: 0 20px;
+}
+
+.tab-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tab-badge :deep(.el-badge__content) {
+  font-size: 11px;
+  font-weight: 600;
+  height: 18px;
+  line-height: 16px;
+  padding: 0 5px;
+  border-radius: 9px;
+  transition: all 0.3s ease;
+}
+
+/* Crisis badge special styling */
+.crisis-badge :deep(.el-badge__content) {
+  background-color: #ef4444;
+  animation: urgent-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes urgent-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.6);
+  }
+}
+
+/* Hover effect on tabs */
+.message-tabs :deep(.el-tabs__item:hover) .tab-badge :deep(.el-badge__content) {
+  transform: scale(1.1);
+}
+
+/* Active tab badge */
+.message-tabs :deep(.el-tabs__item.is-active) .tab-badge :deep(.el-badge__content) {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
 }
 
 .header-actions {

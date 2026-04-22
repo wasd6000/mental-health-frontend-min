@@ -214,13 +214,35 @@ function logout() {
 }
 
 .unread-badge {
-  background: #ef4444;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   color: #fff;
-  padding: 1px 5px;
+  padding: 2px 6px;
   border-radius: 10px;
   font-size: 11px;
-  font-weight: 600;
-  margin-left: 2px;
+  font-weight: 700;
+  margin-left: 4px;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+  animation: badge-pulse 2s ease-in-out infinite;
+  min-width: 18px;
+  text-align: center;
+  display: inline-block;
+}
+
+@keyframes badge-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.6);
+  }
+}
+
+.msg-link:hover .unread-badge {
+  animation: none;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.7);
 }
 
 .user-name {
