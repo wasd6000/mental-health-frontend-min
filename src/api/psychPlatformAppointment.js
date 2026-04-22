@@ -170,6 +170,8 @@ export function datesMatchingDbWeekday(semesterStart, semesterEnd, dbWeekday) {
 
 /**
  * 一行 counselor_schedule 展开为选时页多条 slot（星期制时按学期内每个匹配日一条）
+ *
+ * 注意：如果后端已经将星期几展开为具体日期，则不再重复展开
  */
 export function expandScheduleRowToSlots(row, counselorNameMap, semesterStart, semesterEnd) {
   const scheduleId = row.scheduleId ?? row.schedule_id
@@ -198,6 +200,14 @@ export function expandScheduleRowToSlots(row, counselorNameMap, semesterStart, s
     consultant_college_id: '',
   }
 
+  // 检查后端是否已经展开为具体日期（格式：yyyy-MM-dd）
+  const dateStr = formatScheduleRowDate(sd)
+  if (dateStr && !isLikelyDbWeekdayOnly(sd)) {
+    // 后端已经返回具体日期，不再展开
+    return [{ ...base, date: dateStr }]
+  }
+
+  // 后端返回的是星期几，需要展开
   if (isLikelyDbWeekdayOnly(sd)) {
     return datesMatchingDbWeekday(semesterStart, semesterEnd, sd).map((date) => ({
       ...base,
@@ -205,9 +215,7 @@ export function expandScheduleRowToSlots(row, counselorNameMap, semesterStart, s
     }))
   }
 
-  const date = formatScheduleRowDate(sd)
-  if (!date) return []
-  return [{ ...base, date }]
+  return []
 }
 
 /** 将咨询师列表行映射为 id -> 显示名 */

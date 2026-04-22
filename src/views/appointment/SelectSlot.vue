@@ -410,7 +410,12 @@ async function refreshSchedule() {
 
     if (useBackendAppointment) {
       const [schRes, conRes] = await Promise.all([
-        fetchScheduleList({ page: 1, pageSize: 500 }),
+        fetchScheduleList({
+          page: 1,
+          pageSize: 500,
+          startTime: semesterStartStr,
+          endTime: semesterEndStr
+        }),
         fetchConsultantList({ page: 1, pageSize: 200 }),
       ])
       const scheduleRows = unwrapPageResult(schRes).records

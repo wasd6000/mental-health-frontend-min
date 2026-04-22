@@ -33,3 +33,28 @@ export function updateRecord(id, data) {
 export function autosaveRecord(data) {
   return request.post('/api/record/autosave', data)
 }
+
+// 异步获取咨询师记录列表（别名，用于兼容）
+export function getRecordsByConsultantAsync(params = {}) {
+  return request.get('/api/record/counselor-list', { params })
+}
+
+// 异步创建记录（别名，用于兼容）
+export function createRecordAsync(data) {
+  return request.post('/api/record/create', data)
+}
+
+// 异步更新记录（别名，用于兼容）
+export function updateRecordAsync(id, data) {
+  return request.put(`/api/record/update?id=${id}`, data)
+}
+
+// 异步自动保存草稿（别名，用于兼容）
+export function autosaveRecordAsync(data) {
+  return request.post('/api/record/autosave', data)
+}
+
+// 异步获取记录详情（别名，用于兼容）
+export function getRecordByIdAsync(id) {
+  return request.get(`/api/record/detail?id=${id}`)
+}

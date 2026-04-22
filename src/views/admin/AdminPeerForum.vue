@@ -107,8 +107,16 @@
               {{ formatDateTime(row.createdAt) }}
             </template>
           </el-table-column>
-          <el-table-column prop="targetType" label="对象" width="90" />
-          <el-table-column prop="reason" label="原因" width="120" />
+          <el-table-column prop="targetType" label="对象" width="90">
+            <template #default="{ row }">
+              {{ row.targetType === 'POST' ? '帖子' : row.targetType === 'REPLY' ? '回复' : row.targetType }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="reason" label="原因" width="120">
+            <template #default="{ row }">
+              {{ formatReportReason(row.reason) }}
+            </template>
+          </el-table-column>
           <el-table-column prop="detail" label="说明" min-width="220" />
           <el-table-column label="关联" width="180">
             <template #default="{ row }">
@@ -116,11 +124,17 @@
               <span v-if="row.replyId" class="minor">reply: {{ row.replyId }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="status" label="状态" width="90" />
+          <el-table-column prop="status" label="状态" width="90">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 'HANDLED' ? 'success' : 'warning'">
+                {{ row.status === 'HANDLED' ? '已处理' : row.status === 'PENDING' ? '待处理' : row.status }}
+              </el-tag>
+            </template>
+          </el-table-column>
           <el-table-column label="操作" width="140" fixed="right">
             <template #default="{ row }">
               <el-button
-                  v-if="canAudit && row.status !== 'handled'"
+                  v-if="canAudit && row.status !== 'HANDLED'"
                   size="small"
                   type="success"
                   @click="markReportHandled(row.id)"
@@ -275,6 +289,21 @@ function formatDateTime(iso: string) {
   const hh = String(d.getHours()).padStart(2, '0')
   const mm = String(d.getMinutes()).padStart(2, '0')
   return `${y}-${m}-${day} ${hh}:${mm}`
+}
+
+// 格式化举报原因
+function formatReportReason(reason: string) {
+  const reasonMap: Record<string, string> = {
+    'abuse': '辱骂/攻击',
+    'sensitive': '敏感信息',
+    'spam': '垃圾广告',
+    'other': '其他',
+    'ABUSE': '辱骂/攻击',
+    'SENSITIVE': '敏感信息',
+    'SPAM': '垃圾广告',
+    'OTHER': '其他'
+  }
+  return reasonMap[reason] || reason || '-'
 }
 
 // 帖子详情对话框

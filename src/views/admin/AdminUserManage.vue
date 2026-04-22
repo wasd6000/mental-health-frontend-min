@@ -110,7 +110,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { Refresh } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getUserList, resetUserPassword, toggleUserStatus } from '../../api/openapi'
+import { getUserList, resetUserPassword, toggleUserStatus, createUser, updateUser, deleteUser } from '../../api/openapi'
 
 const roleOptions = [
   { value: 'student', label: '学生' },
@@ -281,10 +281,39 @@ async function saveUser() {
 
   try {
     loading.value = true
-    // TODO: 需要后端提供新增/编辑用户的 API
-    // 目前先提示功能待实现
-    ElMessage.info('新增/编辑用户功能待后端接口支持')
-    userDialogVisible.value = false
+    if (editingUser.value) {
+      // 更新用户
+      const res = await updateUser({
+        userId: editingUser.value.id,
+        username: userForm.account,
+        realName: userForm.name,
+        phone: userForm.phone,
+        role: userForm.role.toUpperCase(),
+      })
+      if (res?.code === 200) {
+        ElMessage.success('用户更新成功')
+        userDialogVisible.value = false
+        loadData()
+      } else {
+        ElMessage.error(res?.msg || '更新失败')
+      }
+    } else {
+      // 创建用户
+      const res = await createUser({
+        username: userForm.account,
+        realName: userForm.name,
+        phone: userForm.phone,
+        password: userForm.password,
+        role: userForm.role.toUpperCase(),
+      })
+      if (res?.code === 200) {
+        ElMessage.success('用户创建成功')
+        userDialogVisible.value = false
+        loadData()
+      } else {
+        ElMessage.error(res?.msg || '创建失败')
+      }
+    }
   } catch (e) {
     console.error('保存用户失败:', e)
     ElMessage.error(e?.message || '保存失败')
@@ -346,8 +375,13 @@ async function removeUser(row) {
       type: 'warning',
     })
 
-    // TODO: 需要后端提供删除用户的 API
-    ElMessage.info('删除用户功能待后端接口支持')
+    const res = await deleteUser(row.id)
+    if (res?.code === 200) {
+      ElMessage.success('用户删除成功')
+      loadData()
+    } else {
+      ElMessage.error(res?.msg || '删除失败')
+    }
   } catch (e) {
     if (e !== 'cancel') {
       console.error('删除用户失败:', e)

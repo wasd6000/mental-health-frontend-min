@@ -177,10 +177,32 @@ export function joinActivity(activityId: string) {
 }
 
 /**
+ * 取消报名（别名，用于兼容 ActivityCancelLanding.vue）
+ * POST /api/activity/cancel-enroll
+ */
+export function cancelActivityRegistration(data: {
+  activityId: string
+  studentId: string
+}) {
+  return request.post('/api/activity/cancel-enroll', data)
+}
+
+/**
  * 取消报名（别名，用于兼容 ActivityManage.vue）
  * POST /api/activity/cancel
  */
 export function cancelActivity(activityId: string) {
     return request.post('/api/activity/cancel', { activityId })
+}
+
+/**
+ * 活动签到
+ * POST /api/activity/checkin
+ */
+export function checkinActivity(data: {
+  activityId: string
+  studentId: string
+}) {
+  return request.post('/api/activity/checkin', data)
 }
 

@@ -180,7 +180,14 @@ export async function createReply(
 export async function toggleLike(postId: string): Promise<{ liked: boolean; likeCount: number }> {
   try {
     const res = await request.post(`/api/peer-forum/post/${postId}/like`)
-    return res.data
+    // 后端返回格式: { code: 200, data: { liked: boolean, likeCount: number } }
+    if (res?.data) {
+      return {
+        liked: res.data.liked ?? false,
+        likeCount: res.data.likeCount ?? 0
+      }
+    }
+    return { liked: false, likeCount: 0 }
   } catch (error: any) {
     if (error?.response?.status === 403 || error?.response?.status >= 500) {
       console.warn('⚠️ 点赞接口暂未实现')
@@ -197,7 +204,14 @@ export async function toggleLike(postId: string): Promise<{ liked: boolean; like
 export async function toggleCollect(postId: string): Promise<{ collected: boolean; collectCount: number }> {
   try {
     const res = await request.post(`/api/peer-forum/post/${postId}/collect`)
-    return res.data
+    // 后端返回格式: { code: 200, data: { collected: boolean, collectCount: number } }
+    if (res?.data) {
+      return {
+        collected: res.data.collected ?? false,
+        collectCount: res.data.collectCount ?? 0
+      }
+    }
+    return { collected: false, collectCount: 0 }
   } catch (error: any) {
     if (error?.response?.status === 403 || error?.response?.status >= 500) {
       console.warn('⚠️ 收藏接口暂未实现')

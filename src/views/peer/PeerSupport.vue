@@ -119,47 +119,47 @@
 
         <div class="peer-cards">
           <div
-            v-for="item in list"
-            :key="item.id"
+            v-for="(item, index) in list"
+            :key="item?.id || index"
             class="peer-card"
-            :style="{ '--card-color': getTypeColor(item.category) }"
-            @click="goDetail(item.id)"
+            :style="{ '--card-color': getTypeColor(item?.category) }"
+            @click="item?.id && goDetail(item.id)"
           >
-            <div class="card-icon-wrap" :style="{ background: getTypeGradient(item.category) }">
-              <el-icon class="card-icon"><component :is="getTypeIcon(item.category)" /></el-icon>
+            <div class="card-icon-wrap" :style="{ background: getTypeGradient(item?.category) }">
+              <el-icon class="card-icon"><component :is="getTypeIcon(item?.category)" /></el-icon>
             </div>
             <div class="card-body">
               <div class="card-header">
                 <div class="left-tags">
-                  <span class="card-type" :style="{ color: getTypeColor(item.category), background: getTypeBg(item.category) }">
-                    {{ item.category || '话题讨论' }}
+                  <span class="card-type" :style="{ color: getTypeColor(item?.category), background: getTypeBg(item?.category) }">
+                    {{ item?.category || '话题讨论' }}
                   </span>
-                  <span v-if="item.isTop" class="flag top-flag">置顶</span>
-                  <span v-if="item.isEssence" class="flag essence-flag">精华</span>
-                  <span v-if="item.status === 'pending'" class="flag pending-flag">审核中</span>
-                  <span v-if="item.status === 'rejected'" class="flag rejected-flag">已驳回</span>
+                  <span v-if="item?.isTop" class="flag top-flag">置顶</span>
+                  <span v-if="item?.isEssence" class="flag essence-flag">精华</span>
+                  <span v-if="item?.status === 'pending'" class="flag pending-flag">审核中</span>
+                  <span v-if="item?.status === 'rejected'" class="flag rejected-flag">已驳回</span>
                 </div>
                 <span class="card-date">
                   <el-icon><Calendar /></el-icon>
-                  {{ formatDate(item.createdAt) }}
+                  {{ formatDate(item?.createdAt) }}
                 </span>
               </div>
-              <h3 class="card-title">{{ item.title }}</h3>
-              <p class="card-summary">{{ item.content }}</p>
+              <h3 class="card-title">{{ item?.title }}</h3>
+              <p class="card-summary">{{ item?.content }}</p>
               <div class="card-footer">
                 <div class="meta-row">
-                  <span class="meta-item">作者：{{ item.authorDisplay }}</span>
+                  <span class="meta-item">作者：{{ item?.authorDisplay }}</span>
                   <span class="meta-item">
                     <el-icon><View /></el-icon>
-                    {{ item.viewCount || 0 }}
+                    {{ item?.viewCount || 0 }}
                   </span>
                   <span class="meta-item">
                     <el-icon><ChatDotRound /></el-icon>
-                    {{ item.replyCount || 0 }}
+                    {{ item?.replyCount || 0 }}
                   </span>
                   <span class="meta-item">
                     <el-icon><Pointer /></el-icon>
-                    {{ item.likeCount || 0 }}
+                    {{ item?.likeCount || 0 }}
                   </span>
                 </div>
               </div>
@@ -372,13 +372,28 @@ async function submitCreate() {
   if (!ok) return
   createSubmitting.value = true
   try {
-    const post = await createPost({
+    const res = await createPost({
       title: createForm.value.title,
       content: createForm.value.content,
       category: createForm.value.category,
       tags: createForm.value.tags,
       isAnonymous: createForm.value.isAnonymous,
     })
+
+    // 处理 API 响应结构
+    const post = res?.data || res
+    if (!post?.id) {
+      ElMessage.success('发布成功，等待审核')
+      createVisible.value = false
+      createForm.value.title = ''
+      createForm.value.content = ''
+      createForm.value.tags = []
+      createForm.value.isAnonymous = true
+      page.value = 1
+      await loadList()
+      return
+    }
+
     ElMessage.success('发布成功，等待审核')
     createVisible.value = false
     createForm.value.title = ''

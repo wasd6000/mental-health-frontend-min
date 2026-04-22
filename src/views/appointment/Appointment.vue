@@ -199,7 +199,7 @@ onMounted(async () => {
 })
 
 watch(visitConfig, (cfg) => {
-  if (!cfg) return
+  if (!cfg || !cfg.fields || !Array.isArray(cfg.fields)) return
   cfg.fields.forEach((f: { key: string | number }) => {
     visitForm.value[f.key] = ''
   })

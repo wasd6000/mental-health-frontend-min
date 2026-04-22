@@ -955,6 +955,36 @@ export function toggleUserStatus(params = {}, data, config = {}) {
   })
 }
 
+// POST /api/admin/user/create - 创建用户
+export function createUser(data, config = {}) {
+  return request({
+    url: '/api/admin/user/create',
+    method: 'post',
+    data,
+    ...config
+  })
+}
+
+// PUT /api/admin/user/update - 更新用户
+export function updateUser(data, config = {}) {
+  return request({
+    url: '/api/admin/user/update',
+    method: 'put',
+    data,
+    ...config
+  })
+}
+
+// DELETE /api/admin/user/delete - 删除用户
+export function deleteUser(userId, config = {}) {
+  return request({
+    url: '/api/admin/user/delete',
+    method: 'delete',
+    params: { id: userId },
+    ...config
+  })
+}
+
 // 用户认证与个人信息
 // GET /api/auth/captcha - 获取验证码
 export function getVerificationCode(params = {}, data, config = {}) {

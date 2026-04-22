@@ -189,8 +189,8 @@ import {
   applyTemplate,
   deleteTemplate,
   batchCreateSchedule
-} from '../../../api/scheduleApi'
-import { getApprovedLeaveList } from '../../../api/leaveApi.js'
+} from '../../api/scheduleApi'
+import { getApprovedLeaveList } from '../../api/leaveApi.js'
 
 // ===== 状态定义 =====
 const loading = ref(false)

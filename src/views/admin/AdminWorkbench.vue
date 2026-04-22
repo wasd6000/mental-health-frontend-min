@@ -88,6 +88,7 @@ import { getCrisisList } from '../../api/crisisApi'
 import { getLeaveApprovalList } from '../../api/leaveApi'
 import { getUnreadCount } from '../../api/message.js'
 import { getAppointmentList } from '../../api/appointmentApi'
+import { getAdminWorkbenchStats } from '../../api/adminApi.js'
 
 const router = useRouter()
 const role = ref(localStorage.getItem('admin_role') || localStorage.getItem('user_role') || 'admin')
@@ -326,9 +327,18 @@ async function loadStats() {
 
     // 5. 获取学生数量（tutor/instructor/college/leader）
     if (['tutor', 'instructor', 'college', 'leader'].includes(role.value)) {
-      // TODO: 调用真实接口获取学生数量
-      // 暂时使用模拟数据，等待后端提供接口
-      stats.value.studentCount = role.value === 'leader' ? 5000 : (role.value === 'college' ? 800 : 120)
+      try {
+        const statsRes = await getAdminWorkbenchStats()
+        if (statsRes?.code === 200 && statsRes.data) {
+          stats.value.studentCount = statsRes.data.totalStudents || 0
+        } else {
+          // 降级：使用模拟数据
+          stats.value.studentCount = role.value === 'leader' ? 5000 : (role.value === 'college' ? 800 : 120)
+        }
+      } catch (e) {
+        console.warn('获取工作台统计失败，使用模拟数据:', e)
+        stats.value.studentCount = role.value === 'leader' ? 5000 : (role.value === 'college' ? 800 : 120)
+      }
     }
   } catch (e) {
     console.error('加载统计数据失败:', e)

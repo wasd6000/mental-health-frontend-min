@@ -105,7 +105,7 @@
       </el-form>
       <template #footer>
         <el-button @click="messageDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="sendMessage" :disabled="!messageForm.content">发送</el-button>
+        <el-button type="primary" @click="handleSendMessage" :disabled="!messageForm.content">发送</el-button>
       </template>
     </el-dialog>
   </div>
@@ -119,6 +119,7 @@ import {
   ArrowLeft, User, UserFilled, Phone, Message, Location,
   ChatDotRound, Calendar, Clock
 } from '@element-plus/icons-vue'
+import { sendMessage } from '@/api/openapi'
 
 const router = useRouter()
 
@@ -161,11 +162,34 @@ function openMessageDialog(target, type) {
   messageDialogVisible.value = true
 }
 
-function sendMessage() {
+async function handleSendMessage() {
   if (!messageForm.value.content) return
-  // TODO: 接入后端 API
-  ElMessage.success('消息已发送')
-  messageDialogVisible.value = false
+
+  if (!messageTarget.value?.id) {
+    ElMessage.warning('请选择收件人')
+    return
+  }
+
+  try {
+    const res = await sendMessage({
+      userId: messageTarget.value.id,
+      title: messageForm.value.subject || '无主题',
+      content: messageForm.value.content,
+      messageType: 'PRIVATE',
+      priority: 0
+    })
+
+    if (res?.code === 200) {
+      ElMessage.success('消息发送成功')
+      messageDialogVisible.value = false
+      messageForm.value = { subject: '', content: '' }
+    } else {
+      ElMessage.error(res?.msg || '发送失败')
+    }
+  } catch (e) {
+    console.error('发送消息失败:', e)
+    ElMessage.error(e?.message || '网络请求失败')
+  }
 }
 
 function goAppointment(counselor) {

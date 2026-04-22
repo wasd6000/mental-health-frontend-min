@@ -96,7 +96,7 @@
               type="danger"
               link
               size="small"
-              @click="cancelLeave(row)"
+              @click="handleCancelLeave(row)"
             >
               取消
             </el-button>
@@ -290,7 +290,7 @@ const handleUpdate = async () => {
   }
 }
 
-const cancelLeave = async (row) => {
+const handleCancelLeave = async (row) => {
   try {
     const { value } = await ElMessageBox.prompt('请输入取消原因', '取消请假', {
       confirmButtonText: '确定',

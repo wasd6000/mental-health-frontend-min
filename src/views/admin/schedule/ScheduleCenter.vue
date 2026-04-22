@@ -66,9 +66,16 @@
               :class="getCellClass(day.date, time)"
               @click="openCounselorDialog(day.date, time)"
             >
-              <div v-if="getSchedule(day.date, time)" class="counselor-info">
-                <div class="name">{{ getSchedule(day.date, time)?.counselorName }}</div>
-                <div class="leave-badge" v-if="isOnLeave(day.date, time)">请假中</div>
+              <div v-if="getSchedules(day.date, time).length > 0" class="counselor-list">
+                <div
+                  v-for="s in getSchedules(day.date, time)"
+                  :key="s.id"
+                  class="counselor-tag"
+                  :class="{ 'on-leave': isOnLeave(day.date, time, s.counselorId) }"
+                >
+                  <span class="name">{{ s.counselorName }}</span>
+                  <span v-if="isOnLeave(day.date, time, s.counselorId)" class="leave-mark">假</span>
+                </div>
               </div>
               <div v-else class="empty-cell">点击设置</div>
             </td>
@@ -78,24 +85,43 @@
     </div>
 
     <!-- 选择咨询师对话框 -->
-    <el-dialog v-model="counselorDialogVisible" title="选择咨询师" width="400px">
-      <el-select v-model="selectedCounselorId" placeholder="请选择咨询师" style="width: 100%">
-        <el-option label="清空排班" value="" />
-        <el-option
-          v-for="c in counselors.filter(Boolean)"
-          :key="c.id"
-          :label="c.name"
-          :value="c.id"
-        />
-      </el-select>
+    <el-dialog v-model="counselorDialogVisible" title="管理排班" width="450px">
+      <div class="current-schedules" v-if="currentCellSchedules.length > 0">
+        <div class="section-title">当前排班</div>
+        <div class="schedule-list">
+          <div
+            v-for="s in currentCellSchedules"
+            :key="s.id"
+            class="schedule-item"
+            :class="{ 'on-leave': isOnLeave(currentCell.date, currentCell.time, s.counselorId) }"
+          >
+            <span class="counselor-name">{{ s.counselorName }}</span>
+            <span v-if="isOnLeave(currentCell.date, currentCell.time, s.counselorId)" class="leave-badge">请假中</span>
+            <el-button type="danger" link size="small" @click="removeSchedule(s.id)">删除</el-button>
+          </div>
+        </div>
+      </div>
+
+      <div class="add-schedule-section">
+        <div class="section-title">添加排班</div>
+        <el-select v-model="selectedCounselorId" placeholder="选择咨询师" style="width: 100%">
+          <el-option
+            v-for="c in availableCounselorsForCell"
+            :key="c.id"
+            :label="c.name"
+            :value="c.id"
+          />
+        </el-select>
+      </div>
+
       <template #footer>
-        <el-button @click="counselorDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmCounselor">确定</el-button>
+        <el-button @click="counselorDialogVisible = false">关闭</el-button>
+        <el-button type="primary" :disabled="!selectedCounselorId" @click="confirmCounselor">添加</el-button>
       </template>
     </el-dialog>
 
     <!-- 批量生成排班对话框 -->
-    <el-dialog v-model="batchDialogVisible" title="批量生成排班" width="500px">
+    <el-dialog v-model="batchDialogVisible" title="批量生成排班" width="600px">
       <el-form :model="batchForm" label-width="100px">
         <el-form-item label="开始日期" required>
           <el-date-picker
@@ -115,8 +141,19 @@
             style="width: 100%"
           />
         </el-form-item>
+        <el-form-item label="选择咨询师" required>
+          <el-select-v2
+            v-model="batchForm.counselorIds"
+            :options="counselorOptions"
+            placeholder="选择咨询师（可多选，留空则选择全部）"
+            multiple
+            clearable
+            :props="{ multiple: true }"
+            style="width: 100%"
+          />
+        </el-form-item>
         <el-form-item label="使用模板">
-          <el-select v-model="batchForm.templateId" placeholder="选择模板（可选）" style="width: 100%">
+          <el-select v-model="batchForm.templateId" placeholder="选择模板（可选）" style="width: 100%" clearable>
             <el-option
               v-for="t in templateList"
               :key="t.id"
@@ -124,6 +161,9 @@
               :value="t.id"
             />
           </el-select>
+        </el-form-item>
+        <el-form-item label="重复设置">
+          <el-checkbox v-model="batchForm.skipExisting">跳过已存在的排班</el-checkbox>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -206,7 +246,9 @@ const batchLoading = ref(false)
 const batchForm = ref({
   startDate: '',
   endDate: '',
-  templateId: ''
+  templateId: '',
+  counselorIds: [],
+  skipExisting: true
 })
 const templateForm = ref({ name: '' })
 const selectedTemplateId = ref('')
@@ -230,6 +272,14 @@ const displayDays = computed(() => {
   } else {
     return [{ label: '选中日期', date: viewDate.value }]
   }
+})
+
+// 咨询师选项（用于多选下拉框）
+const counselorOptions = computed(() => {
+  return counselors.value.map(c => ({
+    label: c.name,
+    value: c.id
+  }))
 })
 
 // ===== 工具函数 =====
@@ -354,13 +404,34 @@ async function loadTemplates() {
 }
 
 // ===== 排班操作 =====
-function getSchedule(date, time) {
-  return schedule.value.find(i => i.date === date && i.time === time)
+// 获取指定日期和时间段的所有排班（支持多咨询师）
+function getSchedules(date, time) {
+  return schedule.value.filter(i => i.date === date && i.time === time)
 }
 
-function isOnLeave(date, time) {
-  const scheduleItem = getSchedule(date, time)
-  if (!scheduleItem || !scheduleItem.counselorId) return false
+// 兼容旧代码，返回第一个排班
+function getSchedule(date, time) {
+  return getSchedules(date, time)[0]
+}
+
+// 当前单元格已设置的排班（计算属性需要在函数定义后）
+const currentCellSchedules = computed(() => {
+  if (!currentCell.value.date || !currentCell.value.time) return []
+  return getSchedules(currentCell.value.date, currentCell.value.time)
+})
+
+// 当前单元格可添加的咨询师（排除已设置的）
+const availableCounselorsForCell = computed(() => {
+  const existingCounselorIds = new Set(currentCellSchedules.value.map(s => s.counselorId))
+  return counselors.value.filter(c => c && c.id && !existingCounselorIds.has(c.id))
+})
+
+function isOnLeave(date, time, counselorId) {
+  if (!counselorId) {
+    // 如果没有指定咨询师，检查该时段是否有任何咨询师请假
+    const schedules = getSchedules(date, time)
+    return schedules.some(s => isOnLeave(date, time, s.counselorId))
+  }
 
   const timeParts = time.split('-')
   if (timeParts.length !== 2) return false
@@ -372,7 +443,7 @@ function isOnLeave(date, time) {
 
   return approvedLeaves.value.some(leave => {
     if (!leave || !leave.counselorId || !leave.startTime || !leave.endTime) return false
-    if (leave.counselorId !== scheduleItem.counselorId) return false
+    if (leave.counselorId !== counselorId) return false
     const leaveStart = new Date(leave.startTime)
     const leaveEnd = new Date(leave.endTime)
     if (isNaN(leaveStart.getTime()) || isNaN(leaveEnd.getTime())) return false
@@ -381,60 +452,68 @@ function isOnLeave(date, time) {
 }
 
 function getCellClass(date, time) {
-  const s = getSchedule(date, time)
-  if (!s) return 'empty'
-  if (isOnLeave(date, time)) return 'on-leave'
+  const schedules = getSchedules(date, time)
+  if (schedules.length === 0) return 'empty'
+  const hasActiveSchedule = schedules.some(s => !isOnLeave(date, time, s.counselorId))
+  if (!hasActiveSchedule) return 'on-leave'
   return 'has-schedule'
 }
 
 function openCounselorDialog(date, time) {
   currentCell.value = { date, time }
-  const s = getSchedule(date, time)
-  selectedCounselorId.value = s ? s.counselorId : ''
+  selectedCounselorId.value = ''
   counselorDialogVisible.value = true
+}
+
+async function removeSchedule(scheduleId) {
+  try {
+    await deleteSchedule(scheduleId)
+    ElMessage.success('已删除排班')
+    await loadSchedule()
+    window.dispatchEvent(new Event('schedule-updated'))
+  } catch (e) {
+    console.error('删除排班失败:', e)
+    ElMessage.error('删除排班失败')
+  }
 }
 
 async function confirmCounselor() {
   const { date, time } = currentCell.value
   const [startTime, endTime] = time.split('-')
 
-  try {
-    if (!selectedCounselorId.value) {
-      // 清空排班
-      const existingSchedule = getSchedule(date, time)
-      if (existingSchedule) {
-        await deleteSchedule(existingSchedule.id)
-        ElMessage.success('已清空排班')
-      }
-    } else {
-      // 创建新排班
-      const counselor = counselors.value.find(c => c.id === selectedCounselorId.value)
-      if (!counselor) {
-        ElMessage.error('未找到咨询师信息')
-        return
-      }
+  if (!selectedCounselorId.value) {
+    ElMessage.warning('请选择咨询师')
+    return
+  }
 
-      await createSchedule({
-        counselorId: selectedCounselorId.value,
-        scheduleDate: date,
-        startTime,
-        endTime,
-        availableSlots: 1,
-        scheduleType: 'REGULAR',
-        status: 1,
-        reservationLocation: campus.value
-      })
-      ElMessage.success('排班设置成功')
+  try {
+    // 创建新排班
+    const counselor = counselors.value.find(c => c.id === selectedCounselorId.value)
+    if (!counselor) {
+      ElMessage.error('未找到咨询师信息')
+      return
     }
 
-    counselorDialogVisible.value = false
+    await createSchedule({
+      counselorId: selectedCounselorId.value,
+      scheduleDate: date,
+      startTime,
+      endTime,
+      availableSlots: 1,
+      scheduleType: 'REGULAR',
+      status: 1,
+      reservationLocation: campus.value
+    })
+    ElMessage.success('排班添加成功')
+
+    selectedCounselorId.value = ''
     await loadSchedule()
 
     // 派发事件通知学生端刷新
     window.dispatchEvent(new Event('schedule-updated'))
   } catch (e) {
-    console.error('更新排班失败:', e)
-    ElMessage.error(e?.message || '更新排班失败')
+    console.error('添加排班失败:', e)
+    ElMessage.error(e?.message || '添加排班失败')
   }
 }
 
@@ -582,9 +661,20 @@ function openBatchDialog() {
   batchForm.value = {
     startDate: '',
     endDate: '',
-    templateId: ''
+    templateId: '',
+    counselorIds: [],
+    skipExisting: true
   }
   batchDialogVisible.value = true
+}
+
+// 检查排班是否已存在
+function isScheduleExists(counselorId, date, startTime, endTime) {
+  return schedule.value.some(s =>
+    s.counselorId === counselorId &&
+    s.date === date &&
+    s.time === `${startTime}-${endTime}`
+  )
 }
 
 async function confirmBatch() {
@@ -593,97 +683,127 @@ async function confirmBatch() {
     return
   }
 
+  // 确定要生成排班的咨询师列表
+  let targetCounselors = []
+  if (batchForm.value.counselorIds && batchForm.value.counselorIds.length > 0) {
+    targetCounselors = counselors.value.filter(c => batchForm.value.counselorIds.includes(c.id))
+  } else {
+    targetCounselors = counselors.value.filter(c => c && c.id)
+  }
+
+  if (targetCounselors.length === 0) {
+    ElMessage.warning('请至少选择一位咨询师')
+    return
+  }
+
   batchLoading.value = true
+  let createdCount = 0
+  let skippedCount = 0
+  let failedCount = 0
+
   try {
+    const start = new Date(batchForm.value.startDate)
+    const end = new Date(batchForm.value.endDate)
+
     if (batchForm.value.templateId) {
-      // 使用模板批量生成 - 改为前端循环创建
+      // ===== 使用模板批量生成 =====
       const template = templateList.value.find(t => t.id === batchForm.value.templateId)
       if (!template || !template.schedules) {
         throw new Error('模板数据不存在')
       }
 
-      const start = new Date(batchForm.value.startDate)
-      const end = new Date(batchForm.value.endDate)
-      let current = new Date(start)
-      let createdCount = 0
+      // 按星期几分组模板排班
+      const weekdayConfigs = new Map() // dayOfWeek -> [{startTime, endTime, ...}]
+      template.schedules.forEach(s => {
+        const templateDate = new Date(s.date)
+        const dayOfWeek = templateDate.getDay() === 0 ? 7 : templateDate.getDay() // 0=周日->7
+        if (!weekdayConfigs.has(dayOfWeek)) {
+          weekdayConfigs.set(dayOfWeek, [])
+        }
+        const [startTime, endTime] = (s.time || '09:00-10:00').split('-')
+        weekdayConfigs.get(dayOfWeek).push({
+          startTime: startTime || '09:00',
+          endTime: endTime || '10:00',
+          availableSlots: s.availableSlots || 1,
+          slotDuration: '50',
+          reservationLocation: s.reservationLocation || campus.value
+        })
+      })
 
-      // 循环每一天
-      while (current <= end) {
-        const dayOfWeek = current.getDay() // 0=周日, 1=周一...
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) { // 跳过周末
-          const dateStr = toDay(current)
-
-          // 获取模板中对应星期几的排班
-          const templateDaySchedules = template.schedules.filter(s => {
-            const templateDate = new Date(s.date)
-            return templateDate.getDay() === dayOfWeek
-          })
-
-          // 创建排班
-          for (const templateItem of templateDaySchedules) {
-            const [startTime, endTime] = (templateItem.time || '09:00-10:00').split('-')
-            try {
-              await createSchedule({
-                counselorId: templateItem.counselorId,
-                scheduleDate: dateStr,
-                startTime: startTime || '09:00',
-                endTime: endTime || '10:00',
-                availableSlots: templateItem.availableSlots || 1,
-                scheduleType: templateItem.scheduleType || 'REGULAR',
-                status: 1,
-                reservationLocation: templateItem.reservationLocation || campus.value
-              })
-              createdCount++
-            } catch (err) {
-              console.warn(`创建排班失败: ${dateStr} ${templateItem.time}`, err)
+      // 为每个咨询师调用批量创建接口
+      for (const counselor of targetCounselors) {
+        try {
+          // 检查排班是否已存在
+          if (batchForm.value.skipExisting) {
+            const existingSchedules = schedule.value.filter(s => s.counselorId === counselor.id)
+            if (existingSchedules.length > 0) {
+              skippedCount++
+              continue
             }
           }
+
+          await batchCreateSchedule({
+            counselorId: counselor.id,
+            startDate: batchForm.value.startDate,
+            endDate: batchForm.value.endDate,
+            schedules: Array.from(weekdayConfigs.entries()).flatMap(([dayOfWeek, configs]) =>
+              configs.map(cfg => ({ ...cfg, dayOfWeek }))
+            )
+          })
+          createdCount++
+        } catch (err) {
+          failedCount++
+          console.warn(`为咨询师 ${counselor.name} 批量创建排班失败:`, err)
         }
-        current.setDate(current.getDate() + 1)
       }
 
-      ElMessage.success(`批量生成成功，共创建 ${createdCount} 条排班`)
+      ElMessage.success(`批量生成完成！成功: ${createdCount} 位咨询师, 跳过: ${skippedCount}, 失败: ${failedCount}`)
     } else {
-      // 直接批量创建 - 为每个咨询师创建默认排班
-      const start = new Date(batchForm.value.startDate)
-      const end = new Date(batchForm.value.endDate)
+      // ===== 直接批量创建默认排班 =====
+      // 按星期几分组时间段
+      const weekdayTimeConfigs = new Map()
       let current = new Date(start)
-      let createdCount = 0
-
-      // 为每个工作日、每个时段创建排班
       while (current <= end) {
-        const dayOfWeek = current.getDay()
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-          const dateStr = toDay(current)
+        const jsDay = current.getDay() // 0=周日, 1=周一...
+        const dayOfWeek = jsDay === 0 ? 7 : jsDay // 转换为 1-7（周一=1, 周日=7）
 
+        if (jsDay !== 0 && jsDay !== 6) { // 跳过周末
+          if (!weekdayTimeConfigs.has(dayOfWeek)) {
+            weekdayTimeConfigs.set(dayOfWeek, [])
+          }
           for (const time of periods.value) {
             const [startTime, endTime] = time.split('-')
-            // 为每个咨询师创建排班（默认选择第一个有效咨询师）
-            const validCounselors = counselors.value.filter(c => c && c.id)
-            if (validCounselors.length > 0) {
-              const counselor = validCounselors[0]
-              try {
-                await createSchedule({
-                  counselorId: counselor.id,
-                  scheduleDate: dateStr,
-                  startTime: startTime,
-                  endTime: endTime,
-                  availableSlots: 1,
-                  scheduleType: 'REGULAR',
-                  status: 1,
-                  reservationLocation: campus.value
-                })
-                createdCount++
-              } catch (err) {
-                console.warn(`创建排班失败: ${dateStr} ${time}`, err)
-              }
-            }
+            weekdayTimeConfigs.get(dayOfWeek).push({
+              startTime,
+              endTime,
+              availableSlots: 1,
+              slotDuration: '50',
+              reservationLocation: campus.value
+            })
           }
         }
         current.setDate(current.getDate() + 1)
       }
 
-      ElMessage.success(`批量生成成功，共创建 ${createdCount} 条排班`)
+      // 为每个咨询师调用批量创建接口
+      for (const counselor of targetCounselors) {
+        try {
+          await batchCreateSchedule({
+            counselorId: counselor.id,
+            startDate: batchForm.value.startDate,
+            endDate: batchForm.value.endDate,
+            schedules: Array.from(weekdayTimeConfigs.entries()).flatMap(([dayOfWeek, configs]) =>
+              configs.map(cfg => ({ ...cfg, dayOfWeek }))
+            )
+          })
+          createdCount++
+        } catch (err) {
+          failedCount++
+          console.warn(`为咨询师 ${counselor.name} 批量创建排班失败:`, err)
+        }
+      }
+
+      ElMessage.success(`批量生成完成！成功: ${createdCount} 位咨询师, 失败: ${failedCount}`)
     }
 
     batchDialogVisible.value = false
@@ -841,6 +961,88 @@ onMounted(async () => {
 .schedule-grid td .empty-cell {
   font-size: 12px;
   color: #94a3b8;
+}
+
+/* 多咨询师排班列表 */
+.counselor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.counselor-tag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #dcfce7;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #166534;
+}
+
+.counselor-tag.on-leave {
+  background: #fee2e2;
+  color: #991b1b;
+  text-decoration: line-through;
+}
+
+.counselor-tag .leave-mark {
+  font-size: 10px;
+  background: #dc2626;
+  color: white;
+  padding: 0 4px;
+  border-radius: 2px;
+}
+
+/* 对话框样式 */
+.current-schedules {
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+
+.schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.schedule-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.schedule-item.on-leave {
+  background: #fee2e2;
+  border-color: #fecaca;
+}
+
+.schedule-item .counselor-name {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.schedule-item .leave-badge {
+  font-size: 11px;
+  color: #dc2626;
+  margin-left: 8px;
+}
+
+.add-schedule-section {
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
 }
 
 .cell-content {

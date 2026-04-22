@@ -73,13 +73,13 @@
           </div>
 
           <div class="action-bar">
-            <el-button @click="handleLike" :type="post.likedByMe ? 'primary' : 'default'">
+            <el-button @click="handleLike" :type="post?.likedByMe ? 'primary' : 'default'">
               <el-icon><Pointer /></el-icon>
-              赞 {{ post.likeCount || 0 }}
+              赞 {{ post?.likeCount || 0 }}
             </el-button>
-            <el-button @click="handleCollect" :type="post.collectedByMe ? 'success' : 'default'">
+            <el-button @click="handleCollect" :type="post?.collectedByMe ? 'success' : 'default'">
               <el-icon><Star /></el-icon>
-              收藏 {{ post.collectCount || 0 }}
+              收藏 {{ post?.collectCount || 0 }}
             </el-button>
             <el-button @click="openReport('post')" type="warning" plain>
               <el-icon><Warning /></el-icon>
@@ -457,8 +457,10 @@ async function handleLike() {
   if (!post.value) return
   try {
     const res = await toggleLike(post.value.id)
-    post.value.likeCount = res.likeCount
-    post.value.likedByMe = res.liked
+    if (res) {
+      post.value.likeCount = res.likeCount ?? 0
+      post.value.likedByMe = res.liked ?? false
+    }
   } catch (e: any) {
     ElMessage.error(e?.message || '操作失败')
   }
@@ -468,8 +470,10 @@ async function handleCollect() {
   if (!post.value) return
   try {
     const res = await toggleCollect(post.value.id)
-    post.value.collectCount = res.collectCount
-    post.value.collectedByMe = res.collected
+    if (res) {
+      post.value.collectCount = res.collectCount ?? 0
+      post.value.collectedByMe = res.collected ?? false
+    }
   } catch (e: any) {
     ElMessage.error(e?.message || '操作失败')
   }

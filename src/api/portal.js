@@ -292,7 +292,7 @@ export const getNotices = async (params = {}) => {
 
 export const getNoticeDetail = async (id) => {
   try {
-    const res = await fetchNoticeDetailReq({ id })
+    const res = await fetchNoticeDetailReq(id)
     if (res?.code === 200 && res.data) {
       const d = res.data
       return {

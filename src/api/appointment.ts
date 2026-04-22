@@ -292,6 +292,13 @@ export async function updateAppointmentStatusAsync(
     res = await request.post('/api/appointment/reject', { id, ...payload })
   } else if (status === 'no_show') {
     res = await request.post('/api/appointment/mark-no-show', { id, ...payload })
+  } else if (status === 'info_done' || status === 'scale_done' || status === 'sign_done') {
+    // 工作流状态更新：来访登记完成、量表完成、签名完成
+    res = await request.post('/api/appointment/update-status', {
+      id,
+      status,
+      ...payload,
+    })
   } else if (status === 'closed') {
     // 原前端用 closed 表示咨询师拒绝，对接后端 reject
     res = await request.post('/api/appointment/reject', {
