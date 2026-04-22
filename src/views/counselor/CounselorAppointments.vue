@@ -223,7 +223,7 @@ async function reject(row) {
 }
 
 function goDetail(id) {
-  router.push(`/appointment/${id}/detail`)
+  router.push(`/admin/appointment/${id}`)
 }
 
 function renew(row) {

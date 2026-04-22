@@ -414,6 +414,11 @@ const routes = [
       meta: { needAuth: true, roles: ['counselor', 'center'] }
     },
     {
+      path: 'appointment/:id',
+      component: () => import('../views/appointment/AppointmentDetail.vue'),
+      meta: { needAuth: true, roles: ['counselor', 'center', 'admin'] }
+    },
+    {
       path: 'consult-records',
       component: () => import('../views/counselor/ConsultRecords.vue'),
       meta: { needAuth: true, roles: ['counselor'] }
@@ -498,6 +503,22 @@ const routes = [
       name: 'AdminPeerForum',
       component: () => import('../views/admin/AdminPeerForum.vue'),
       meta: { needAuth: true, roles: ['admin', 'center', 'counselor', 'tutor', 'instructor', 'college', 'college_leader', 'leader', 'school_leader'] }
+    },
+
+    // 心理百科管理（咨询师、心理中心可发布编辑）
+    {
+      path: 'wiki-manage',
+      name: 'AdminWikiManage',
+      component: () => import('../views/admin/WikiManage.vue'),
+      meta: { needAuth: true, roles: ['counselor', 'center'] }
+    },
+
+    // 通知公告管理（心理中心、管理员、领导可发布编辑）
+    {
+      path: 'notice-manage',
+      name: 'AdminNoticeManage',
+      component: () => import('../views/admin/NoticeManage.vue'),
+      meta: { needAuth: true, roles: ['center', 'admin', 'leader', 'school_leader'] }
     },
 
 

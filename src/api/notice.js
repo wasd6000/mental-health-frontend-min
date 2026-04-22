@@ -45,5 +45,5 @@ export function updateNotice(id, data) {
  * 删除公告
  */
 export function deleteNotice(id) {
-  return request.delete(`/api/notice/${id}`)
+  return request.delete(`/api/notice/delete`, { params: { id } })
 }

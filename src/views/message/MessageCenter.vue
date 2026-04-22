@@ -1016,8 +1016,13 @@ function openCrisisDetail(crisis) {
 }
 
 function openAppointmentDetail(appointment) {
-  // 跳转到预约详情页面
-  router.push(`/appointment/${appointment.id}/detail`)
+  // 根据用户角色跳转到不同的预约详情页面
+  const role = currentRole.value
+  if (['counselor', 'center', 'admin'].includes(role)) {
+    router.push(`/admin/appointment/${appointment.id}`)
+  } else {
+    router.push(`/appointment/${appointment.id}/detail`)
+  }
 }
 
 function formatTime(time, full = false) {

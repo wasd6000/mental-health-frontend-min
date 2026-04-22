@@ -17,15 +17,22 @@ const MOCK_SCHEDULE_KEY = 'MOCK_SCHEDULE'
 /** 将 /api/appointment/list|detail 的 AppointmentDetailVO 转成页面用状态（与 consultation_appointment.appointment_status 一致） */
 export function normalizeAppointmentFromApi(d: any) {
   if (!d || typeof d !== 'object') return d
-  const s = d.status
+  // 后端可能返回 appointmentStatus 或 status
+  const s = d.status ?? d.appointmentStatus ?? d.appointment_status
   const sv = String(s ?? '').toUpperCase()
   let status = typeof s === 'string' ? s.toLowerCase() : s
-  if (sv === 'PENDING' || s === '待处理' || s === '待确认') status = 'submitted'
+  if (sv === 'DRAFT') status = 'draft'
+  else if (sv === 'PENDING' || s === '待处理' || s === '待确认') status = 'submitted'
   else if (sv === 'CONFIRMED' || s === '已确认') status = 'confirmed'
   else if (sv === 'CANCELLED' || s === '已取消') status = 'cancelled'
   else if (sv === 'REJECTED' || s === '已拒绝') status = 'rejected'
   else if (sv === 'COMPLETED' || s === '已完成') status = 'completed'
   else if (sv === 'NO_SHOW' || s === '爽约') status = 'no_show'
+  else if (sv === 'INFO_DONE') status = 'info_done'
+  else if (sv === 'SCALE_DONE') status = 'scale_done'
+  else if (sv === 'SIGN_DONE') status = 'sign_done'
+  // 如果状态无法识别，默认设为 draft（工作流起点）
+  else if (!status) status = 'draft'
 
   const appointmentDateRaw = d.appointmentDate ?? d.date
   const dateStr =

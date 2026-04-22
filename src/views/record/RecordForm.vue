@@ -85,7 +85,7 @@ const form = ref<any>({
   appointmentId: route.query.appointmentId || '',
   studentId: localStorage.getItem('studentId') || '',
   counselorId: getCounselorUserId(),
-  counselorName: localStorage.getItem('user_name') || '',
+  counselorName: localStorage.getItem('user_name') || localStorage.getItem('User_name') || '',
   consultationDate: toDay(new Date()),
   content: '',
   riskAssessment: '',

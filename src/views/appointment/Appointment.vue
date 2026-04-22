@@ -15,6 +15,7 @@ const currentStep = computed<'info' | 'scale' | 'sign' | 'done'>(()  => {
 
   switch (appointment.value.status) {
     case 'draft':
+    case 'submitted':  // 后端 PENDING 映射为 submitted，作为工作流起点
       return 'info'
     case 'info_done':
       return 'scale'
@@ -94,14 +95,18 @@ async function submitVisitInfo() {
     )
 
     if (res.code === 200 && res.data) {
-      appointment.value = { ...appointment.value, ...res.data }
+      // 确保使用规范化后的数据，保留必要字段
+      const updated = res.data as Appointment
+      appointment.value = {
+        ...appointment.value,
+        ...updated,
+        // 确保状态是规范化的值
+        status: updated.status || 'info_done'
+      }
+      ElMessage.success('来访登记已完成，请填写前测量表')
     }
   } catch (e: any) {
-    // Deleted:if (!appointmentMock) {
-    ElMessage.warning(
-        e?.message ||
-        '后端暂未对接来访登记状态；您仍可在下方查看本次预约信息。',
-    )
+    ElMessage.error(e?.message || '提交失败，请重试')
   }
 }
 
@@ -136,11 +141,47 @@ async function submitScale() {
       )
 
       if (res.code === 200 && res.data) {
-        appointment.value = { ...appointment.value, ...res.data }
+        const updated = res.data as Appointment
+        appointment.value = {
+          ...appointment.value,
+          ...updated,
+          status: updated.status || 'scale_done'
+        }
+        ElMessage.success('量表已完成，请签署知情同意书')
       }
     } catch (e: any) {
-      ElMessage.warning(e?.message || '后端暂未对接量表步骤状态')
+      ElMessage.error(e?.message || '提交失败，请重试')
     }
+  }
+}
+
+// 跳过前测量表（当没有量表配置时）
+async function skipScale() {
+  if (!appointment.value) return
+
+  try {
+    const res = await updateAppointmentStatusAsync(
+        appointment.value.id,
+        'scale_done',
+        {
+          scaleResult: {
+            skipped: true,
+            reason: 'No scales configured'
+          },
+        } as any,
+    )
+
+    if (res.code === 200 && res.data) {
+      const updated = res.data as Appointment
+      appointment.value = {
+        ...appointment.value,
+        ...updated,
+        status: updated.status || 'scale_done'
+      }
+      ElMessage.success('已跳过前测量表，请签署知情同意书')
+    }
+  } catch (e: any) {
+    ElMessage.error(e?.message || '提交失败，请重试')
   }
 }
 
@@ -162,10 +203,16 @@ async function submitSign() {
     )
 
     if (res.code === 200 && res.data) {
-      appointment.value = { ...appointment.value, ...res.data }
+      const updated = res.data as Appointment
+      appointment.value = {
+        ...appointment.value,
+        ...updated,
+        status: updated.status || 'sign_done'
+      }
+      ElMessage.success('预约已完成！')
     }
   } catch (e: any) {
-    ElMessage.warning(e?.message || '后端暂未对接签署步骤状态')
+    ElMessage.error(e?.message || '提交失败，请重试')
   }
 }
 
@@ -175,13 +222,15 @@ onMounted(async () => {
 
   try {
     const res = await getAppointmentByIdAsync(id)
+    console.log('预约详情API响应:', res)
     if (res?.code === 200 && res.data) {
       appointment.value = res.data as Appointment
+      console.log('预约状态:', appointment.value.status, '原始状态:', (res.data as any).appointmentStatus || (res.data as any).appointment_status)
     } else {
       appointment.value = null
     }
   } catch (e) {
-    console.error('找不到预约', id)
+    console.error('找不到预约', id, e)
     appointment.value = null
   }
 
@@ -190,9 +239,17 @@ onMounted(async () => {
     const s = await getScaleConfig()
     const c = await getConsentConfig()
     visitConfig.value = v?.data ?? null
-    const scales = s?.data
-    scaleConfig.value = Array.isArray(scales) ? scales.filter((i: any) => i.enabled) : []
+    // 处理量表配置：后端返回 { scales: [...] } 格式
+    const scalesData = s?.data
+    let scales = []
+    if (Array.isArray(scalesData)) {
+      scales = scalesData
+    } else if (scalesData && Array.isArray(scalesData.scales)) {
+      scales = scalesData.scales
+    }
+    scaleConfig.value = scales.filter((i: any) => i.enabled)
     consentConfig.value = c?.data ?? null
+    console.log('量表配置加载:', scaleConfig.value)
   } catch (e) {
     console.error('加载表单配置失败', e)
   }
@@ -215,10 +272,38 @@ watch(scaleConfig, (list) => {
 </script>
 
 <template>
+  <!-- 调试信息 -->
+  <div v-if="appointment" style="background: #f0f0f0; padding: 8px; margin: 8px; font-size: 12px; color: #666;">
+    状态: {{ appointment.status }} | 当前步骤: {{ currentStep }}
+  </div>
+
   <div v-if="!appointment">
     <el-empty description="暂无预约，请从预约列表进入" />
   </div>
-  
+
+  <!-- 步骤指示器 -->
+  <div v-if="appointment" class="steps-indicator">
+    <div class="step-item" :class="{ active: currentStep === 'info' || currentStep === 'scale' || currentStep === 'sign' || currentStep === 'done' }">
+      <div class="step-number">1</div>
+      <div class="step-label">来访登记</div>
+    </div>
+    <div class="step-line" :class="{ active: currentStep === 'scale' || currentStep === 'sign' || currentStep === 'done' }"></div>
+    <div class="step-item" :class="{ active: currentStep === 'scale' || currentStep === 'sign' || currentStep === 'done' }">
+      <div class="step-number">2</div>
+      <div class="step-label">前测量表</div>
+    </div>
+    <div class="step-line" :class="{ active: currentStep === 'sign' || currentStep === 'done' }"></div>
+    <div class="step-item" :class="{ active: currentStep === 'sign' || currentStep === 'done' }">
+      <div class="step-number">3</div>
+      <div class="step-label">知情同意</div>
+    </div>
+    <div class="step-line" :class="{ active: currentStep === 'done' }"></div>
+    <div class="step-item" :class="{ active: currentStep === 'done' }">
+      <div class="step-number">4</div>
+      <div class="step-label">完成</div>
+    </div>
+  </div>
+
   <!-- 来访登记 -->
   <div v-if="appointment && currentStep === 'info'" class="step-info">
     <h3>来访登记</h3>
@@ -278,8 +363,13 @@ watch(scaleConfig, (list) => {
 <div v-if="appointment && currentStep === 'scale'" class="step-scale">
   <h3>前测量表</h3>
 
+  <!-- 量表列表为空时显示提示 -->
+  <el-empty v-if="scaleConfig.length === 0" description="暂无配置的量表，可直接进入下一步">
+    <el-button type="primary" @click="skipScale">跳过，进入下一步</el-button>
+  </el-empty>
+
   <!-- 量表列表 -->
-<div v-if="!activeScale">
+<div v-else-if="!activeScale">
   <template v-for="s in scaleConfig" :key="s.id">
     <el-card
       v-if="s.enabled"
@@ -305,6 +395,11 @@ watch(scaleConfig, (list) => {
       </div>
     </el-card>
   </template>
+
+  <!-- 全部完成后显示进入下一步按钮 -->
+  <div v-if="scaleConfig.every(s => !s.enabled || doneScales.includes(s.id))" style="margin-top: 20px; text-align: center;">
+    <el-button type="success" @click="skipScale">进入下一步</el-button>
+  </div>
 </div>
 
   <!-- 量表填写页（占位） -->

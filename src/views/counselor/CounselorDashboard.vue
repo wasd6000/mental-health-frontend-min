@@ -407,7 +407,7 @@ const longLeaveCount = ref(0)
 const assessmentWarningCount = ref(0)
 
 function goAppointment(id: string) {
-  router.push(`/appointment/${id}/detail`)
+  router.push(`/admin/appointment/${id}`)
 }
 </script>
 

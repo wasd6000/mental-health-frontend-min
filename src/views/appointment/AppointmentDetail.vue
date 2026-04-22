@@ -15,21 +15,21 @@
         <el-descriptions-item label="当前状态">{{ statusText[appointment.status as AppointmentStatus] || appointment.status }}</el-descriptions-item>
       </el-descriptions>
 
-      <!-- 操作按钮（仅咨询师可见） -->
-      <div v-if="isCounselor" style="margin-bottom:20px">
-        <el-button 
-          v-if="canAgree" 
-          type="success" 
+      <!-- 操作按钮（仅咨询师/心理中心/管理员可见） -->
+      <div v-if="isStaff" style="margin-bottom:20px">
+        <el-button
+          v-if="canAgree"
+          type="success"
           @click="handleAgree"
         >同意预约</el-button>
-        <el-button 
-          v-if="canReject" 
-          type="info" 
+        <el-button
+          v-if="canReject"
+          type="info"
           @click="handleReject"
         >拒绝预约</el-button>
-        <el-button 
-          v-if="canRenew" 
-          type="warning" 
+        <el-button
+          v-if="canRenew"
+          type="warning"
           @click="handleRenew"
         >一键续约</el-button>
       </div>
@@ -77,9 +77,10 @@ const statusFlow: AppointmentStatus[] = [
   'closed'
 ]
 
-// 判断是否咨询师身份
-const isCounselor = computed(() => {
-  return localStorage.getItem('user_role') === 'counselor'
+// 判断是否咨询师/管理员/心理中心身份
+const isStaff = computed(() => {
+  const role = localStorage.getItem('admin_role') || localStorage.getItem('user_role') || localStorage.getItem('User_role')
+  return ['counselor', 'center', 'admin'].includes(role)
 })
 
 // 判断按钮可见性
@@ -145,8 +146,8 @@ const statusText: Record<AppointmentStatus, string> = {
 // 同意预约
 const handleAgree = async () => {
   if (!appointment.value) return
-  if (!isCounselor.value) {
-    ElMessage.error('只有咨询师可执行该操作')
+  if (!isStaff.value) {
+    ElMessage.error('无权限执行该操作')
     return
   }
   try {
@@ -162,8 +163,8 @@ const handleAgree = async () => {
 // 拒绝预约
 const handleReject = async () => {
   if (!appointment.value) return
-  if (!isCounselor.value) {
-    ElMessage.error('只有咨询师可执行该操作')
+  if (!isStaff.value) {
+    ElMessage.error('无权限执行该操作')
     return
   }
   const studentId = appointment.value.studentId
@@ -182,8 +183,8 @@ const handleReject = async () => {
 // 一键续约
 const handleRenew = async () => {
   if (!appointment.value) return
-  if (!isCounselor.value) {
-    ElMessage.error('只有咨询师可执行该操作')
+  if (!isStaff.value) {
+    ElMessage.error('无权限执行该操作')
     return
   }
   const scheduleId = appointment.value.scheduleId

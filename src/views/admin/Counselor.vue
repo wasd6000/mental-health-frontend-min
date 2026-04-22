@@ -63,18 +63,26 @@
     </el-card>
 
     <el-dialog v-model="counselorDialogVisible" :title="editingCounselor ? '编辑咨询师' : '新增咨询师'" width="500px">
-      <el-form :model="counselorForm" label-width="80px">
-        <el-form-item label="工号" required>
+      <el-form :model="counselorForm" label-width="100px" :rules="formRules" ref="counselorFormRef">
+        <el-form-item label="工号" prop="workNo">
           <el-input v-model="counselorForm.workNo" placeholder="如 C001" :disabled="!!editingCounselor" />
         </el-form-item>
-        <el-form-item label="姓名" required>
+        <el-form-item label="姓名" prop="name">
           <el-input v-model="counselorForm.name" placeholder="真实姓名" />
+        </el-form-item>
+        <el-form-item label="手机号" prop="phone">
+          <el-input
+            v-model="counselorForm.phone"
+            placeholder="手机号码"
+            maxlength="11"
+            @input="counselorForm.phone = counselorForm.phone.replace(/\D/g, '').slice(0, 11)"
+          />
+        </el-form-item>
+        <el-form-item v-if="!editingCounselor" label="初始密码" prop="password">
+          <el-input v-model="counselorForm.password" type="password" placeholder="默认为 123456" show-password />
         </el-form-item>
         <el-form-item label="职称">
           <el-input v-model="counselorForm.title" placeholder="如 心理咨询师" />
-        </el-form-item>
-        <el-form-item label="电话">
-          <el-input v-model="counselorForm.phone" placeholder="联系电话" />
         </el-form-item>
         <el-form-item label="擅长领域">
           <el-input v-model="counselorForm.specialty" type="textarea" :rows="2" placeholder="如 情绪管理、学业压力" />
@@ -82,7 +90,7 @@
       </el-form>
       <template #footer>
         <el-button @click="counselorDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveCounselor">保存</el-button>
+        <el-button type="primary" @click="saveCounselor" :loading="loading">保存</el-button>
       </template>
     </el-dialog>
   </div>
@@ -115,10 +123,27 @@ const filter = reactive({
 const counselorForm = reactive({
   workNo: '',
   name: '',
-  title: '',
   phone: '',
+  password: '',
+  title: '',
   specialty: '',
 })
+
+const counselorFormRef = ref(null)
+
+const formRules = {
+  workNo: [{ required: true, message: '请输入工号', trigger: 'blur' }],
+  name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
+  phone: [
+    { required: true, message: '请输入手机号', trigger: 'blur' },
+    { min: 11, max: 11, message: '手机号必须为11位数字', trigger: 'blur' },
+    {
+      pattern: /^1[3-9]\d{9}$/,
+      message: '请输入正确的手机号码',
+      trigger: 'blur'
+    }
+  ]
+}
 
 const filteredList = computed(() => {
   let list = counselorList.value
@@ -167,22 +192,30 @@ function openCounselorDialog(row = null) {
   if (row) {
     counselorForm.workNo = row.workNo
     counselorForm.name = row.name
-    counselorForm.title = row.title || ''
     counselorForm.phone = row.phone || ''
+    counselorForm.password = ''
+    counselorForm.title = row.title || ''
     counselorForm.specialty = row.specialty || ''
   } else {
     counselorForm.workNo = ''
     counselorForm.name = ''
-    counselorForm.title = ''
     counselorForm.phone = ''
+    counselorForm.password = ''
+    counselorForm.title = ''
     counselorForm.specialty = ''
   }
   counselorDialogVisible.value = true
 }
 
 async function saveCounselor() {
-  if (!counselorForm.workNo || !counselorForm.name) {
-    ElMessage.warning('请填写工号和姓名')
+  // 表单验证
+  const valid = await counselorFormRef.value?.validate().catch(() => false)
+  if (!valid) return
+
+  // 去除手机号前后空格
+  const phone = counselorForm.phone?.trim()
+  if (!phone) {
+    ElMessage.warning('请输入手机号')
     return
   }
 
@@ -191,10 +224,22 @@ async function saveCounselor() {
     let res
     if (editingCounselor.value) {
       // 更新现有咨询师
-      res = await updateAdminCounselor(editingCounselor.value.id, counselorForm)
+      res = await updateAdminCounselor(editingCounselor.value.id, {
+        realName: counselorForm.name,
+        phone: phone,
+        title: counselorForm.title,
+        expertiseAreas: counselorForm.specialty
+      })
     } else {
       // 创建新咨询师
-      res = await createAdminCounselor(counselorForm)
+      res = await createAdminCounselor({
+        employeeNumber: counselorForm.workNo?.trim(),
+        realName: counselorForm.name?.trim(),
+        phone: phone,
+        password: counselorForm.password || '123456',
+        title: counselorForm.title,
+        expertiseAreas: counselorForm.specialty
+      })
     }
 
     if (res?.code === 200) {
