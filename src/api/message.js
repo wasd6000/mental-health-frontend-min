@@ -269,3 +269,31 @@ export async function getContactList(keyword = '') {
   const list = data.list || data.records || []
   return list
 }
+
+/**
+ * 搜索用户（用于发起新会话）
+ * GET /api/user/search?keyword=xxx
+ */
+export async function searchUsers(keyword) {
+  if (!keyword || keyword.trim().length < 2) {
+    return []
+  }
+  const res = await request.get('/api/user/search', {
+    params: { keyword: keyword.trim() }
+  })
+  return res.data || []
+}
+
+/**
+ * 上传私信附件
+ * POST /api/message/upload
+ */
+export function uploadMessageAttachment(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post('/api/message/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}

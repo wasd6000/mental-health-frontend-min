@@ -102,8 +102,22 @@
                   <span class="message-sender">{{ msg.isSelf ? '我' : msg.senderName }}</span>
                   <span class="message-time">{{ formatTime(msg.createdAt, true) }}</span>
                 </div>
-                <div class="message-bubble">
-                  <div class="message-content">{{ msg.content }}</div>
+              <div class="message-bubble">
+                  <div v-if="msg.messageType === 2" class="message-image">
+                    <el-image
+                      :src="extractUrl(msg.content)"
+                      :preview-src-list="[extractUrl(msg.content)]"
+                      fit="cover"
+                      style="max-width: 200px; max-height: 200px; border-radius: 8px; cursor: pointer;"
+                    />
+                  </div>
+                  <div v-else-if="msg.messageType === 3" class="message-file">
+                    <el-link :href="extractUrl(msg.content)" target="_blank" type="primary">
+                      <el-icon><Document /></el-icon>
+                      {{ extractFileName(msg.content) }}
+                    </el-link>
+                  </div>
+                  <div v-else class="message-content">{{ msg.content }}</div>
                 </div>
               </div>
             </div>
@@ -114,12 +128,26 @@
           <div class="chat-input-area">
             <div class="input-toolbar">
               <el-tooltip content="发送图片" placement="top">
-                <el-icon class="toolbar-icon"><Picture /></el-icon>
+                <el-icon class="toolbar-icon" @click="triggerImageUpload"><Picture /></el-icon>
               </el-tooltip>
               <el-tooltip content="发送文件" placement="top">
-                <el-icon class="toolbar-icon"><Document /></el-icon>
+                <el-icon class="toolbar-icon" @click="triggerFileUpload"><Document /></el-icon>
               </el-tooltip>
             </div>
+            <!-- 隐藏的文件输入 -->
+            <input
+              ref="imageInputRef"
+              type="file"
+              accept="image/*"
+              style="display: none"
+              @change="handleImageUpload"
+            />
+            <input
+              ref="fileInputRef"
+              type="file"
+              style="display: none"
+              @change="handleFileUpload"
+            />
             <div class="input-box">
               <el-input
                 v-model="inputMessage"
@@ -201,6 +229,7 @@ import {
 } from '@element-plus/icons-vue'
 import request from '@/request'
 import { useMessageStore } from '@/stores/messageStore'
+import { searchUsers as searchUsersApi, uploadMessageAttachment } from '@/api/message'
 
 const messageStore = useMessageStore()
 const emit = defineEmits(['update-unread'])
@@ -213,6 +242,11 @@ const messageList = ref([])
 const searchKeyword = ref('')
 const inputMessage = ref('')
 const messageContainer = ref(null)
+
+// 文件上传相关
+const uploadingFile = ref(false)
+const fileInputRef = ref(null)
+const imageInputRef = ref(null)
 
 const userAvatar = computed(() => {
   return localStorage.getItem('user_avatar') || ''
@@ -352,6 +386,120 @@ async function sendMessage() {
   }
 }
 
+// 触发图片选择
+function triggerImageUpload() {
+  imageInputRef.value?.click()
+}
+
+// 触发文件选择
+function triggerFileUpload() {
+  fileInputRef.value?.click()
+}
+
+// 处理图片上传
+async function handleImageUpload(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  // 验证文件类型
+  if (!file.type.startsWith('image/')) {
+    ElMessage.error('请选择图片文件')
+    return
+  }
+
+  // 验证文件大小（限制 5MB）
+  if (file.size > 5 * 1024 * 1024) {
+    ElMessage.error('图片大小不能超过 5MB')
+    return
+  }
+
+  uploadingFile.value = true
+  try {
+    const res = await uploadMessageAttachment(file)
+    if (res.code === 200 && res.data?.url) {
+      // 发送图片消息
+      await sendFileMessage(res.data.url, 'image')
+      ElMessage.success('图片发送成功')
+    }
+  } catch (e) {
+    console.error('上传图片失败:', e)
+    ElMessage.error('上传图片失败')
+  } finally {
+    uploadingFile.value = false
+    // 清空input，允许重复选择同一文件
+    event.target.value = ''
+  }
+}
+
+// 处理文件上传
+async function handleFileUpload(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  // 验证文件大小（限制 10MB）
+  if (file.size > 10 * 1024 * 1024) {
+    ElMessage.error('文件大小不能超过 10MB')
+    return
+  }
+
+  uploadingFile.value = true
+  try {
+    const res = await uploadMessageAttachment(file)
+    if (res.code === 200 && res.data?.url) {
+      // 发送文件消息
+      await sendFileMessage(res.data.url, 'file', file.name)
+      ElMessage.success('文件发送成功')
+    }
+  } catch (e) {
+    console.error('上传文件失败:', e)
+    ElMessage.error('上传文件失败')
+  } finally {
+    uploadingFile.value = false
+    // 清空input，允许重复选择同一文件
+    event.target.value = ''
+  }
+}
+
+// 发送文件/图片消息
+async function sendFileMessage(fileUrl, type, fileName = '') {
+  if (!currentConversation.value) return
+
+  const content = type === 'image'
+    ? `[图片] ${fileUrl}`
+    : `[文件] ${fileName}: ${fileUrl}`
+
+  try {
+    const res = await request.post('/api/message/private/send', {
+      receiverId: currentConversation.value.targetUserId,
+      content: content,
+      messageType: type === 'image' ? 2 : 3, // 2=图片, 3=文件
+      attachmentUrl: fileUrl
+    })
+
+    if (res.code === 200) {
+      // 添加到消息列表
+      const currentUserId = localStorage.getItem('user_id') || localStorage.getItem('userId')
+      messageList.value.push({
+        messageId: Date.now().toString(),
+        senderId: currentUserId,
+        content: content,
+        messageType: type === 'image' ? 2 : 3,
+        attachmentUrl: fileUrl,
+        createdAt: new Date().toISOString(),
+        isSelf: true
+      })
+      nextTick(() => {
+        scrollToBottom()
+      })
+      // 更新会话列表
+      loadConversations()
+    }
+  } catch (e) {
+    console.error('发送文件消息失败:', e)
+    ElMessage.error('发送失败')
+  }
+}
+
 // 标记会话已读
 async function markConversationAsRead(targetUserId) {
   try {
@@ -409,23 +557,19 @@ async function deleteConversation(conv) {
 
 // 搜索用户
 async function searchUsers(query) {
-  if (!query) return
+  if (!query || query.trim().length < 2) {
+    userOptions.value = []
+    return
+  }
   userSearchLoading.value = true
   try {
-    // 这里需要后端提供用户搜索接口
-    // const res = await request.get('/api/user/search', { params: { keyword: query } })
-    // userOptions.value = res.data || []
-
-    // 临时：从现有会话中过滤
-    userOptions.value = conversations.value
-      .filter(conv => (conv.targetUserName || '').includes(query))
-      .map(conv => ({
-        userId: conv.targetUserId,
-        realName: conv.targetUserName,
-        avatarUrl: conv.targetUserAvatar
-      }))
+    // 调用后端用户搜索API
+    const result = await searchUsersApi(query.trim())
+    userOptions.value = result || []
   } catch (e) {
     console.error('搜索用户失败:', e)
+    ElMessage.error('搜索用户失败')
+    userOptions.value = []
   } finally {
     userSearchLoading.value = false
   }
@@ -495,6 +639,22 @@ function formatTime(time, full = false) {
   } else {
     return d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })
   }
+}
+
+// 从消息内容中提取URL
+function extractUrl(content) {
+  if (!content) return ''
+  // 匹配 [图片] url 或 [文件] name: url 格式
+  const match = content.match(/https?:\/\/[^\s]+/)
+  return match ? match[0] : content
+}
+
+// 从消息内容中提取文件名
+function extractFileName(content) {
+  if (!content) return '未知文件'
+  // 匹配 [文件] name: url 格式
+  const match = content.match(/\[文件\]\s*(.+?):\s*https?:/)
+  return match ? match[1] : '文件'
 }
 
 onMounted(() => {
@@ -758,6 +918,33 @@ defineExpose({ loadConversations })
 .message-content {
   line-height: 1.5;
   word-break: break-word;
+}
+
+.message-image {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.message-image :deep(.el-image__inner) {
+  display: block;
+  border-radius: 8px;
+}
+
+.message-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.message-file .el-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.message-item.self .message-file .el-link {
+  color: white;
 }
 
 .chat-input-area {
