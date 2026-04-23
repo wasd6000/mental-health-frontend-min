@@ -285,6 +285,38 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- 快速私信弹窗 -->
+    <el-dialog v-model="privateChatDialogVisible" title="发送私信" width="500px" destroy-on-close>
+      <el-form :model="privateChatForm" label-width="80px" ref="privateChatFormRef" :rules="privateChatRules">
+        <el-form-item label="收件人">
+          <div class="recipient-info">
+            <el-avatar :size="32" :src="privateChatTarget?.avatarUrl">
+              {{ privateChatTarget?.name?.charAt(0) }}
+            </el-avatar>
+            <span>{{ privateChatTarget?.name }}</span>
+            <el-tag size="small" type="info">{{ privateChatTarget?.type === 'tutor' ? '辅导员' : '咨询师' }}</el-tag>
+          </div>
+        </el-form-item>
+        <el-form-item label="消息内容" prop="content">
+          <el-input
+            v-model="privateChatForm.content"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入私信内容，对方会收到即时通知..."
+            maxlength="500"
+            show-word-limit
+            autofocus
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="privateChatDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSendPrivateChat" :loading="sendingPrivateChat">
+          发送并进入对话
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -382,6 +414,19 @@ const messageForm = ref({
 const messageRules = {
   subject: [{ required: true, message: '请输入主题', trigger: 'blur' }],
   content: [{ required: true, message: '请输入内容', trigger: 'blur' }]
+}
+
+// 快速私信弹窗
+const privateChatDialogVisible = ref(false)
+const privateChatTarget = ref(null)
+const privateChatFormRef = ref(null)
+const sendingPrivateChat = ref(false)
+const privateChatForm = ref({
+  content: ''
+})
+
+const privateChatRules = {
+  content: [{ required: true, message: '请输入消息内容', trigger: 'blur' }]
 }
 
 // 初始化加载数据
@@ -553,24 +598,51 @@ async function handleSendMessage() {
 }
 
 // 发起私信聊天
-async function startPrivateChat(target) {
-  try {
-    // 使用私信系统发送第一条消息，打开对话
-    await ElMessageBox.confirm(
-      `确定要开始向 ${target.name} 的私信对话吗？`,
-      '发起私信',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'info'
-      }
-    )
+function startPrivateChat(target) {
+  // 打开快速私信对话框
+  privateChatTarget.value = { ...target, type: target.type || 'counselor' }
+  privateChatForm.value = { content: '' }
+  privateChatDialogVisible.value = true
+}
 
-    // 跳转到消息中心私信页面
-    router.push('/message?tab=private')
-  } catch {
-    // 用户取消
-  }
+// 处理发送私信
+async function handleSendPrivateChat() {
+  if (!privateChatFormRef.value) return
+
+  await privateChatFormRef.value.validate(async (valid) => {
+    if (!valid) return
+
+    sendingPrivateChat.value = true
+    try {
+      const res = await sendPrivateMessage({
+        receiverId: privateChatTarget.value.id,
+        content: privateChatForm.value.content
+      })
+
+      if (res?.code === 200) {
+        ElMessage.success('私信发送成功')
+        privateChatDialogVisible.value = false
+        privateChatForm.value = { content: '' }
+
+        // 跳转到消息中心私信页面，并传递目标用户ID
+        router.push({
+          path: '/message',
+          query: {
+            tab: 'private',
+            targetId: privateChatTarget.value.id,
+            targetName: privateChatTarget.value.name
+          }
+        })
+      } else {
+        ElMessage.error(res?.msg || '发送失败')
+      }
+    } catch (e) {
+      console.error('发送私信失败:', e)
+      ElMessage.error('发送失败，请稍后重试')
+    } finally {
+      sendingPrivateChat.value = false
+    }
+  })
 }
 
 // 跳转到预约页面

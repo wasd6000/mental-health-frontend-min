@@ -222,6 +222,7 @@
 
 <script setup>
 import { ref, computed, nextTick, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Search, Plus, UserFilled, More, Top, Delete,
@@ -233,6 +234,7 @@ import { searchUsers as searchUsersApi, uploadMessageAttachment } from '@/api/me
 
 const messageStore = useMessageStore()
 const emit = defineEmits(['update-unread'])
+const route = useRoute()
 
 const loading = ref(false)
 const loadingMessages = ref(false)
@@ -579,9 +581,11 @@ async function searchUsers(query) {
 async function sendNewMessage() {
   if (!canSendNewMessage.value) return
 
+  const targetId = newMessageForm.value.receiverId
+
   try {
     const res = await request.post('/api/message/private/send', {
-      receiverId: newMessageForm.value.receiverId,
+      receiverId: targetId,
       content: newMessageForm.value.content.trim(),
       messageType: 1
     })
@@ -590,11 +594,19 @@ async function sendNewMessage() {
       ElMessage.success('发送成功')
       showNewMessage.value = false
       newMessageForm.value = { receiverId: '', content: '' }
+      // 清理 URL 参数
+      if (route.query.targetId) {
+        const newQuery = { ...route.query }
+        delete newQuery.targetId
+        delete newQuery.targetName
+        // 使用 window.history 来清理 URL，不触发导航
+        window.history.replaceState({}, '', window.location.pathname + window.location.hash)
+      }
       // 刷新会话列表
       await loadConversations()
       // 如果是发给已有会话的用户，自动选中
       const existingConv = conversations.value.find(
-        c => c.targetUserId === newMessageForm.value.receiverId
+        c => c.targetUserId === targetId
       )
       if (existingConv) {
         selectConversation(existingConv)
@@ -659,6 +671,32 @@ function extractFileName(content) {
 
 onMounted(() => {
   loadConversations()
+
+  // 检查 URL 参数，如果有 targetId 则自动打开新会话
+  const { targetId, targetName } = route.query
+  if (targetId) {
+    // 延迟一点执行，等待会话列表加载完成
+    setTimeout(() => {
+      // 检查是否已有该用户的会话
+      const existingConv = conversations.value.find(
+        c => c.targetUserId === targetId
+      )
+      if (existingConv) {
+        // 选中已有会话
+        selectConversation(existingConv)
+      } else {
+        // 打开新会话对话框并预填接收人
+        newMessageForm.value.receiverId = targetId
+        newMessageForm.value.content = ''
+        userOptions.value = [{
+          userId: targetId,
+          realName: targetName || '未知用户',
+          avatarUrl: ''
+        }]
+        showNewMessage.value = true
+      }
+    }, 500)
+  }
 })
 
 defineExpose({ loadConversations })

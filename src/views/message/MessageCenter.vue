@@ -468,7 +468,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh, Search, WarningFilled } from '@element-plus/icons-vue'
 import request from '@/request'
@@ -476,6 +476,7 @@ import { useMessageStore } from '@/stores/messageStore'
 import PrivateMessageList from './components/PrivateMessageList.vue'
 
 const router = useRouter()
+const route = useRoute()
 const messageStore = useMessageStore()
 
 // 获取当前用户角色
@@ -1099,6 +1100,11 @@ function formatTime(time, full = false) {
 }
 
 onMounted(() => {
+  // 检查 URL 参数，如果有 tab 参数则切换到对应标签
+  const { tab, targetId, targetName } = route.query
+  if (tab === 'private') {
+    activeTab.value = 'private'
+  }
   loadList()
 })
 </script>
